@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(pm2 logs *)",
+      "Bash(pm2 status *)",
+      "Bash(pm2 list *)",
+      "Bash(pm2 info *)",
+      "Bash(pm2 show *)",
+      "Bash(curl -s http://localhost*)",
+      "Bash(sshpass -e ssh * root@5.189.185.36 *)",
+      "Bash(sshpass -e ssh -o * root@5.189.185.36 *)",
+      "Bash(export SSHPASS=* && sshpass -e ssh * root@5.189.185.36 *)",
+      "Bash(rsync * root@5.189.185.36:*)",
+      "Bash(export SSHPASS=* && rsync * root@5.189.185.36:*)"
+    ]
+  }
+}

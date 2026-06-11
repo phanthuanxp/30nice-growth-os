@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  AGENCY_ADMIN
+  TENANT_ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum TenantStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  LOST
+  WON
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String?
+  passwordHash        String?
+  role                Role                 @default(VIEWER)
+  organizationMembers OrganizationMember[]
+  tenantMembers       TenantMember[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Organization {
+  id        String               @id @default(cuid())
+  name      String
+  slug      String               @unique
+  members   OrganizationMember[]
+  tenants   Tenant[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role         @default(AGENCY_ADMIN)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Tenant {
+  id             String          @id @default(cuid())
+  organizationId String?
+  name           String
+  slug           String          @unique
+  primaryDomain  String?         @unique
+  status         TenantStatus    @default(ACTIVE)
+  logoUrl        String?
+  brandPrimary   String?         @default("#10b981")
+  brandSecondary String?         @default("#0ea5e9")
+  businessName   String?
+  businessPhone  String?
+  businessEmail  String?
+  businessAddress String?
+  defaultSeoTitle String?
+  defaultSeoDescription String?
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
+  members        TenantMember[]
+  settings       SiteSettings?
+  domains        Domain[]
+  pages          Page[]
+  posts          Post[]
+  categories     Category[]
+  mediaAssets    MediaAsset[]
+  menus          Menu[]
+  leads          Lead[]
+  aiUsageLogs    AiUsageLog[]
+  seoAudits      SeoAudit[]
+  integrations   Integration[]
+  automationJobs AutomationJob[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status])
+}
+
+model TenantMember {
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+  role     Role   @default(EDITOR)
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+}
+
+model SiteSettings {
+  id                    String  @id @default(cuid())
+  tenantId              String  @unique
+  logoUrl               String?
+  faviconUrl            String?
+  primaryColor          String? @default("#10b981")
+  secondaryColor        String? @default("#0ea5e9")
+  phone                 String?
+  email                 String?
+  address               String?
+  socialLinks           Json?
+  defaultSeoTitle       String?
+  defaultSeoDescription String?
+  theme                 String? @default("default")
+  themeConfig           Json?
+  tenant                Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Domain {
+  id        String   @id @default(cuid())
+  tenantId  String
+  host      String   @unique
+  verified  Boolean  @default(false)
+  primary   Boolean  @default(false)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Page {
+  id             String        @id @default(cuid())
+  tenantId       String
+  title          String
+  slug           String
+  status         ContentStatus @default(DRAFT)
+  summary        String?
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+  uiBlocks       Json
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  slug      String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  posts     Post[]
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model Post {
+  id             String        @id @default(cuid())
+  tenantId       String
+  categoryId     String?
+  title          String
+  slug           String
+  excerpt        String?
+  content        String
+  featuredImage  String?
+  status         ContentStatus @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  ogTitle        String?
+  ogDescription  String?
+  ogImage        String?
+  twitterCard    String?
+  schemaType     String?
+  schemaData     String?
+  robotsMeta     String?
+  canonicalUrl   String?
+  publishedAt    DateTime?
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category       Category?     @relation(fields: [categoryId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  tenantId  String
+  url       String
+  alt       String?
+  filename  String
+  mimeType  String
+  size      Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Menu {
+  id        String     @id @default(cuid())
+  tenantId  String
+  name      String
+  location  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
+
+  @@index([tenantId])
+}
+
+model MenuItem {
+  id       String     @id @default(cuid())
+  menuId   String
+  parentId String?
+  label    String
+  href     String
+  order    Int        @default(0)
+  menu     Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent   MenuItem?  @relation("MenuItemTree", fields: [parentId], references: [id])
+  children MenuItem[] @relation("MenuItemTree")
+
+  @@index([menuId])
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  tenantId     String
+  name         String
+  phone        String?
+  email        String?
+  message      String?
+  sourcePath   String?
+  sourceDomain String?
+  status       LeadStatus @default(NEW)
+  notes        String?
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model AiUsageLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  feature   String
+  tokens    Int      @default(0)
+  cost      Decimal? @db.Decimal(10, 4)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model SeoAudit {
+  id        String   @id @default(cuid())
+  tenantId  String
+  score     Int
+  issues    Json?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Integration {
+  id        String   @id @default(cuid())
+  tenantId  String
+  provider  String
+  status    String   @default("DISCONNECTED")
+  config    Json?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, provider])
+}
+
+model AutomationJob {
+  id        String   @id @default(cuid())
+  tenantId  String
+  type      String
+  status    String   @default("PENDING")
+  payload   Json?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model AiProviderConfig {
+  id         String   @id @default(cuid())
+  provider   String   @unique
+  label      String
+  apiKey     String?
+  baseUrl    String?
+  model      String?
+  isActive   Boolean  @default(false)
+  isDefault  Boolean  @default(false)
+  isFallback Boolean  @default(false)
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

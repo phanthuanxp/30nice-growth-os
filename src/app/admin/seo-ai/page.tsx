@@ -1,0 +1,209 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Search, AlertCircle, AlertTriangle, Info, CheckCircle2, RefreshCw } from "lucide-react";
+import { PageHeader } from "@/components/admin/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AiWriter } from "@/components/admin/ai-writer";
+import { runSeoAudit } from "@/server/queries/seo";
+import type { AiProvider } from "@/app/api/ai/generate/route";
+import { getTenants } from "@/server/queries/tenants";
+import type { SeoAuditResult } from "@/server/queries/seo";
+
+export const metadata: Metadata = { title: "SEO AI" };
+
+interface Props {
+  searchParams: Promise<{ tenant?: string }>;
+}
+
+const SEV_CONFIG = {
+  error: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-50", border: "border-red-200", label: "Lỗi nghiêm trọng" },
+  warning: { icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-50", border: "border-amber-200", label: "Cảnh báo" },
+  info: { icon: Info, color: "text-sky-500", bg: "bg-sky-50", border: "border-sky-200", label: "Đề xuất" },
+};
+
+function ScoreGauge({ score }: { score: number }) {
+  const color = score >= 80 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+  const r = 40;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <svg viewBox="0 0 100 100" className="w-28 h-28">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          transform="rotate(-90 50 50)" />
+        <text x="50" y="46" textAnchor="middle" fontSize="22" fontWeight="bold" fill={color}>{score}</text>
+        <text x="50" y="60" textAnchor="middle" fontSize="10" fill="#94a3b8">/100</text>
+      </svg>
+      <p className="text-sm font-semibold" style={{ color }}>
+        {score >= 80 ? "Tốt" : score >= 50 ? "Cần cải thiện" : "Yếu"}
+      </p>
+    </div>
+  );
+}
+
+export default async function SeoAiPage({ searchParams }: Props) {
+  const { tenant: tenantId } = await searchParams;
+
+  let audit: SeoAuditResult | null = null;
+  let tenants: { id: string; name: string; slug: string }[] = [];
+  let isDemo = false;
+
+  // Detect which AI providers are configured
+  const configuredProviders: AiProvider[] = [];
+  if (process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.startsWith("sk-ant-api03-...")) configuredProviders.push("claude");
+  if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.startsWith("sk-...")) configuredProviders.push("openai");
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "YOUR_GEMINI_KEY") configuredProviders.push("gemini");
+  if (process.env.NINER_ROUTER_API_KEY && process.env.NINER_ROUTER_API_KEY !== "YOUR_9ROUTER_KEY") configuredProviders.push("niner_router");
+
+  try {
+    const [auditResult, tenantList] = await Promise.all([
+      runSeoAudit(tenantId),
+      getTenants(),
+    ]);
+    audit = auditResult;
+    tenants = tenantList.map((t) => ({ id: t.id, name: t.name, slug: t.slug }));
+  } catch {
+    isDemo = true;
+    audit = {
+      score: 62,
+      issues: [
+        { type: "Thiếu SEO Title", resource: "page", id: "1", title: "Trang chủ", severity: "error" },
+        { type: "Thiếu Meta Description", resource: "post", id: "2", title: "Checklist SEO local", severity: "error" },
+        { type: "Thiếu Excerpt", resource: "post", id: "3", title: "AI Content Hub", severity: "warning" },
+      ],
+      pageCount: 2,
+      postCount: 2,
+      publishedPageCount: 1,
+      publishedPostCount: 1,
+    };
+  }
+
+  const errors = audit.issues.filter((i) => i.severity === "error");
+  const warnings = audit.issues.filter((i) => i.severity === "warning");
+  const infos = audit.issues.filter((i) => i.severity === "info");
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="SEO AI Engine"
+        description="Phân tích SEO tự động và trợ lý viết nội dung bằng AI."
+        action={
+          <form method="GET" className="flex gap-2 items-center">
+            <select
+              name="tenant"
+              defaultValue={tenantId ?? ""}
+              className="h-9 rounded-lg border border-slate-300 bg-white pl-3 pr-8 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Tất cả sites</option>
+              {tenants.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <Button type="submit" variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4" />
+              Phân tích
+            </Button>
+          </form>
+        }
+      />
+
+      {isDemo && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+          Dữ liệu demo — kết nối database để phân tích SEO thật
+        </div>
+      )}
+
+      {/* Score + Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <Card className="flex flex-col items-center justify-center p-6">
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-3">Điểm SEO</p>
+          <ScoreGauge score={audit.score} />
+        </Card>
+
+        <div className="lg:col-span-3 grid grid-cols-3 gap-4">
+          {[
+            { label: "Lỗi nghiêm trọng", count: errors.length, color: "text-red-600", bg: "bg-red-50" },
+            { label: "Cảnh báo", count: warnings.length, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Đề xuất", count: infos.length, color: "text-sky-600", bg: "bg-sky-50" },
+          ].map((s) => (
+            <Card key={s.label} className={`p-5 ${s.bg}`}>
+              <p className={`text-3xl font-bold ${s.color}`}>{s.count}</p>
+              <p className="text-sm text-slate-600 mt-1">{s.label}</p>
+            </Card>
+          ))}
+
+          <Card className="col-span-3 p-4">
+            <div className="grid grid-cols-4 gap-4 text-center">
+              {[
+                { label: "Tổng pages", value: audit.pageCount },
+                { label: "Pages đã publish", value: audit.publishedPageCount },
+                { label: "Tổng bài viết", value: audit.postCount },
+                { label: "Bài đã publish", value: audit.publishedPostCount },
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="text-xl font-bold text-slate-800">{s.value}</p>
+                  <p className="text-xs text-slate-500">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Issues list */}
+      {audit.issues.length === 0 ? (
+        <Card className="p-8 flex flex-col items-center text-center">
+          <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-3" />
+          <h3 className="text-base font-semibold text-slate-700">SEO hoàn hảo!</h3>
+          <p className="text-sm text-slate-500 mt-1">Không có vấn đề nào được phát hiện.</p>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-indigo-500" />
+              Danh sách vấn đề ({audit.issues.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-slate-100">
+              {audit.issues.map((issue, i) => {
+                const cfg = SEV_CONFIG[issue.severity];
+                const Icon = cfg.icon;
+                const editHref = issue.resource === "page"
+                  ? `/admin/pages/${issue.id}`
+                  : `/admin/blog/${issue.id}`;
+                return (
+                  <div key={i} className="flex items-start gap-3 px-5 py-3">
+                    <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${cfg.color}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-slate-800">{issue.type}</span>
+                        <Badge variant={issue.resource === "page" ? "info" : "default"} className="text-[10px]">
+                          {issue.resource === "page" ? "Page" : "Bài viết"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">{issue.title}{issue.detail ? ` · ${issue.detail}` : ""}</p>
+                    </div>
+                    {!isDemo && (
+                      <Link href={editHref}>
+                        <Button variant="outline" size="sm">Sửa</Button>
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Writer */}
+      <AiWriter configuredProviders={configuredProviders} />
+    </div>
+  );
+}
