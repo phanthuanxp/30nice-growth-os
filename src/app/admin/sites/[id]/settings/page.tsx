@@ -6,6 +6,8 @@ import { SiteForm } from "@/components/admin/site-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { getTenantById } from "@/server/queries/tenants";
 import { updateSiteAction, deleteSiteAction } from "@/server/actions/sites";
+import { prisma } from "@/server/db";
+import { DomainsClient, type DomainRow } from "./domains-client";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -23,8 +25,17 @@ export default async function SiteSettingsPage({ params }: Props) {
 
   if (!tenant) notFound();
 
+  const domains: DomainRow[] = await prisma.domain
+    .findMany({
+      where: { tenantId: id },
+      orderBy: [{ primary: "desc" }, { createdAt: "asc" }],
+      select: { id: true, host: true, verified: true, primary: true },
+    })
+    .catch(() => []);
+
   const updateAction = updateSiteAction.bind(null, id);
   const deleteAction = deleteSiteAction.bind(null, id);
+  const serverIp = process.env.SERVER_PUBLIC_IP ?? "5.189.185.36";
 
   return (
     <div className="space-y-6">
@@ -33,6 +44,9 @@ export default async function SiteSettingsPage({ params }: Props) {
         description="Thông tin và cấu hình cho site này."
         action={<DeleteButton onDelete={deleteAction} label="Xóa site" />}
       />
+
+      <DomainsClient tenantId={id} domains={domains} serverIp={serverIp} />
+
       <Card>
         <CardContent className="pt-6">
           <SiteForm

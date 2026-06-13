@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import {
-  Car, Check, Globe, Loader2, ExternalLink, ChevronDown, Plus, Trash2,
+  Car, Check, Globe, Loader2, ExternalLink, ChevronDown, Plus, Trash2, UtensilsCrossed, Building2,
   Phone, MessageCircle, Image as ImageIcon, Type, DollarSign, Star,
-  HelpCircle, Megaphone, MapPin, Palette,
+  HelpCircle, Megaphone, MapPin, Palette, MousePointerClick,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { saveThemeSettings } from "./actions";
 import { DEFAULT_TAXI_CONFIG } from "@/components/themes/taxi/types";
-import type { TaxiThemeConfig, TaxiService, TaxiPricingRow, TaxiTestimonial, TaxiFaq } from "@/components/themes/taxi/types";
+import type { TaxiThemeConfig, TaxiService, TaxiPricingRow, TaxiTestimonial, TaxiFaq, TaxiPopupConfig, TaxiSectionKey } from "@/components/themes/taxi/types";
 
 /* ── helpers ──────────────────────────────────────────── */
 
@@ -234,6 +234,64 @@ function FaqEditor({ items, onChange }: {
   );
 }
 
+const SECTION_LABELS: Record<TaxiSectionKey, string> = {
+  hero: "Hero — Banner chính",
+  booking: "Form đặt xe nhanh",
+  features: "Điểm mạnh",
+  services: "Dịch vụ",
+  pricing: "Bảng giá",
+  whyChoose: "Vì sao chọn chúng tôi",
+  testimonials: "Đánh giá khách hàng",
+  faq: "FAQ",
+  cta: "CTA cuối trang",
+};
+
+function SectionOrderEditor({ order, hidden, onOrderChange, onHiddenChange }: {
+  order: TaxiSectionKey[];
+  hidden: TaxiSectionKey[];
+  onOrderChange: (v: TaxiSectionKey[]) => void;
+  onHiddenChange: (v: TaxiSectionKey[]) => void;
+}) {
+  const toggleHidden = (section: TaxiSectionKey) => {
+    onHiddenChange(hidden.includes(section) ? hidden.filter(s => s !== section) : [...hidden, section]);
+  };
+  const move = (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= order.length) return;
+    const next = [...order];
+    [next[index], next[target]] = [next[target], next[index]];
+    onOrderChange(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      {order.map((section, index) => {
+        const disabled = hidden.includes(section);
+        return (
+          <div key={section} className={cn("flex items-center gap-2 rounded-lg border px-3 py-2", disabled ? "border-slate-100 bg-slate-50 text-slate-400" : "border-slate-200 bg-white text-slate-700")}>
+            <input
+              type="checkbox"
+              checked={!disabled}
+              onChange={() => toggleHidden(section)}
+              className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+            />
+            <span className="flex-1 text-sm font-medium">{SECTION_LABELS[section]}</span>
+            <button type="button" onClick={() => move(index, -1)} disabled={index === 0}
+              className="rounded-md border border-slate-200 px-2 py-1 text-xs disabled:opacity-30 hover:bg-slate-50">
+              Lên
+            </button>
+            <button type="button" onClick={() => move(index, 1)} disabled={index === order.length - 1}
+              className="rounded-md border border-slate-200 px-2 py-1 text-xs disabled:opacity-30 hover:bg-slate-50">
+              Xuống
+            </button>
+          </div>
+        );
+      })}
+      <p className="text-[11px] text-slate-400">Bỏ tick để ẩn section trên website. Dùng Lên/Xuống để đổi thứ tự hiển thị.</p>
+    </div>
+  );
+}
+
 /* ── Main component ────────────────────────────────────── */
 
 interface Props {
@@ -272,6 +330,10 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
   const [statsRating, setStatsRating] = useState(merged.statsRating);
   const [statsYears, setStatsYears] = useState(merged.statsYears);
 
+  // Builder sections
+  const [sectionOrder, setSectionOrder] = useState<TaxiSectionKey[]>(merged.sectionOrder ?? DEFAULT_TAXI_CONFIG.sectionOrder);
+  const [hiddenSections, setHiddenSections] = useState<TaxiSectionKey[]>(merged.hiddenSections ?? []);
+
   // Dynamic arrays
   const [services, setServices] = useState<TaxiService[]>(merged.services);
   const [pricing, setPricing] = useState<TaxiPricingRow[]>(merged.pricing);
@@ -289,6 +351,18 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
   const [footerAreas, setFooterAreas] = useState(merged.footerServiceAreas.join(", "));
   const [copyrightName, setCopyrightName] = useState(merged.copyrightName);
 
+  // Popup
+  const [popup, setPopup] = useState<TaxiPopupConfig>(
+    merged.popup ?? {
+      enabled: false,
+      trigger: "exit-intent",
+      delaySeconds: 30,
+      title: "Khoan đã! Nhận báo giá trọn gói ngay",
+      description: "Để lại số điện thoại, tài xế gọi lại tư vấn lộ trình và giá tốt nhất trong 5 phút.",
+      ctaText: "Gọi lại cho tôi",
+    }
+  );
+
   const buildConfig = (): Partial<TaxiThemeConfig> => ({
     phone, zaloLink,
     heroTitle, heroSubtitle,
@@ -299,6 +373,9 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
     footerAbout,
     footerServiceAreas: footerAreas.split(",").map(s => s.trim()).filter(Boolean),
     copyrightName,
+    sectionOrder,
+    hiddenSections,
+    popup,
   });
 
   const handleSave = () => {
@@ -316,6 +393,8 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
   const THEMES = [
     { id: "default", name: "Mặc định", desc: "Block builder cơ bản", color: "#6366f1", Icon: Globe },
     { id: "taxi", name: "Taxi Theme", desc: "Chuyên nghiệp cho dịch vụ taxi & xe du lịch", color: "#1d4ed8", Icon: Car },
+    { id: "restaurant", name: "Restaurant", desc: "Nhà hàng, quán ăn — thực đơn & đặt bàn", color: "#dc2626", Icon: UtensilsCrossed },
+    { id: "hotel", name: "Hotel & Homestay", desc: "Khách sạn, homestay — phòng & đặt phòng", color: "#0891b2", Icon: Building2 },
   ];
 
   const TABS = [
@@ -382,6 +461,15 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
       {/* ── Tab: Nội dung ── */}
       {tab === "content" && theme === "taxi" && (
         <div className="space-y-3">
+          <Section icon={Palette} title="Builder — Thứ tự section" defaultOpen>
+            <SectionOrderEditor
+              order={sectionOrder}
+              hidden={hiddenSections}
+              onOrderChange={setSectionOrder}
+              onHiddenChange={setHiddenSections}
+            />
+          </Section>
+
           <Section icon={Type} title="Hero — Banner chính" defaultOpen>
             <Field label="Tiêu đề chính (H1)">
               <Input value={heroTitle} onChange={setHeroTitle} placeholder="Taxi Bắc Ninh — Đặt xe nhanh, giá trọn gói" />
@@ -442,6 +530,42 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
             </Field>
             <Field label="Tên bản quyền (©)">
               <Input value={copyrightName} onChange={setCopyrightName} placeholder="Taxi Bắc Ninh" />
+            </Field>
+          </Section>
+
+          <Section icon={MousePointerClick} title="Popup chuyển đổi" badge={popup.enabled ? "Đang bật" : "Đang tắt"}>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={popup.enabled}
+                onChange={e => setPopup({ ...popup, enabled: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+              />
+              <span className="text-sm text-slate-700">Bật popup thu lead trên trang chủ</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Kiểu kích hoạt">
+                <select
+                  value={popup.trigger}
+                  onChange={e => setPopup({ ...popup, trigger: e.target.value as "exit-intent" | "time-delay" })}
+                  className="w-full h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
+                >
+                  <option value="exit-intent">Exit intent — khi chuột rời trang</option>
+                  <option value="time-delay">Time delay — sau số giây</option>
+                </select>
+              </Field>
+              <Field label="Độ trễ (giây)" hint="Exit-intent trên mobile dùng độ trễ này">
+                <Input value={String(popup.delaySeconds)} onChange={v => setPopup({ ...popup, delaySeconds: Number(v) || 30 })} type="number" />
+              </Field>
+            </div>
+            <Field label="Tiêu đề popup">
+              <Input value={popup.title} onChange={v => setPopup({ ...popup, title: v })} placeholder="Khoan đã! Nhận báo giá ngay" />
+            </Field>
+            <Field label="Mô tả">
+              <Textarea value={popup.description} onChange={v => setPopup({ ...popup, description: v })} rows={2} />
+            </Field>
+            <Field label="Nút CTA">
+              <Input value={popup.ctaText} onChange={v => setPopup({ ...popup, ctaText: v })} placeholder="Gọi lại cho tôi" />
             </Field>
           </Section>
         </div>

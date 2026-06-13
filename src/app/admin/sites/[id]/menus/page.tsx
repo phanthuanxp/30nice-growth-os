@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Navigation } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
-import { Card } from "@/components/ui/card";
 import { getTenantById } from "@/server/queries/tenants";
+import { prisma } from "@/server/db";
+import { MenusClient, type MenuData } from "./menus-client";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -20,17 +20,39 @@ export default async function SiteMenusPage({ params }: Props) {
   const tenant = await getTenantById(id).catch(() => null);
   if (!tenant) notFound();
 
+  const rawMenus = await prisma.menu
+    .findMany({
+      where: { tenantId: id },
+      include: { items: { orderBy: { order: "asc" } } },
+      orderBy: { createdAt: "asc" },
+    })
+    .catch(() => []);
+
+  const menus: MenuData[] = rawMenus.map((menu) => {
+    const roots = menu.items.filter((i) => !i.parentId);
+    return {
+      id: menu.id,
+      name: menu.name,
+      location: menu.location,
+      items: roots.map((root) => ({
+        id: root.id,
+        label: root.label,
+        href: root.href,
+        order: root.order,
+        children: menu.items
+          .filter((i) => i.parentId === root.id)
+          .map((c) => ({ id: c.id, label: c.label, href: c.href, order: c.order })),
+      })),
+    };
+  });
+
   return (
     <div>
       <PageHeader
-        title="Menus"
-        description={`Quản lý navigation menu của ${tenant.name}.`}
+        title="Menu Builder"
+        description={`Quản lý navigation menu của ${tenant.name}. Menu Header sẽ tự động thay thế navigation của theme.`}
       />
-      <Card className="p-12 text-center">
-        <Navigation className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-        <h3 className="text-sm font-semibold text-slate-600 mb-1">Menu Builder</h3>
-        <p className="text-xs text-slate-400">Tính năng này đang được phát triển.</p>
-      </Card>
+      <MenusClient tenantId={id} menus={menus} />
     </div>
   );
 }

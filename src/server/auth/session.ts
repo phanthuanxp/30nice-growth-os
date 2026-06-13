@@ -70,15 +70,3 @@ export async function requireAuth(): Promise<SessionUser> {
   if (!user) throw new Error("Unauthorized");
   return user;
 }
-
-// Demo credentials — MVP only. Replace with DB lookup in production.
-export const DEMO_CREDENTIALS = {
-  email: "admin@30nice.vn",
-  password: "admin123",
-  user: {
-    id: "demo-super-admin",
-    name: "30Nice Admin",
-    email: "admin@30nice.vn",
-    role: "SUPER_ADMIN" as Role,
-  },
-};

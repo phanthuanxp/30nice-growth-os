@@ -4,7 +4,11 @@ import { PageHeader } from "@/components/admin/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getLeadsByDay, getLeadSourceBreakdown, getContentStats, getTenantComparison } from "@/server/queries/analytics";
+import {
+  getLeadsByDay, getLeadSourceBreakdown, getContentStats, getTenantComparison,
+  getPageviewsByDay, getTopPages, getDeviceBreakdown, getTopReferrers, getTrafficSummary,
+} from "@/server/queries/analytics";
+import { Smartphone, Eye, MousePointerClick } from "lucide-react";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -32,14 +36,24 @@ export default async function AnalyticsPage() {
   let sourceBreakdown: { source: string; total: number; won: number; rate: number }[] = [];
   let stats = { publishedPages: 0, publishedPosts: 0, totalLeads: 0, leadsByStatus: {} as Record<string, number> };
   let tenantComparison: { id: string; name: string; slug: string; pages: number; posts: number; leads: number; newLeads: number; wonLeads: number }[] = [];
+  let pageviewsByDay: { date: string; count: number }[] = [];
+  let topPages: { path: string; views: number }[] = [];
+  let devices = { mobile: 0, desktop: 0 };
+  let referrers: { referrer: string; views: number }[] = [];
+  let traffic = { pageviews: 0, leads: 0, conversionRate: 0 };
   let isDemo = false;
 
   try {
-    [leadsByDay, sourceBreakdown, stats, tenantComparison] = await Promise.all([
+    [leadsByDay, sourceBreakdown, stats, tenantComparison, pageviewsByDay, topPages, devices, referrers, traffic] = await Promise.all([
       getLeadsByDay(30),
       getLeadSourceBreakdown(),
       getContentStats(),
       getTenantComparison(),
+      getPageviewsByDay(30),
+      getTopPages(30),
+      getDeviceBreakdown(30),
+      getTopReferrers(30),
+      getTrafficSummary(30),
     ]);
   } catch {
     isDemo = true;
@@ -124,6 +138,101 @@ export default async function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Traffic (pageviews tự build) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Pageviews 30 ngày", value: traffic.pageviews.toLocaleString("vi-VN"), icon: Eye, color: "text-cyan-600" },
+          { label: "Leads 30 ngày", value: traffic.leads, icon: Users, color: "text-indigo-600" },
+          { label: "Tỉ lệ chuyển đổi", value: `${traffic.conversionRate.toFixed(1)}%`, icon: MousePointerClick, color: "text-emerald-600" },
+          { label: "Mobile / Desktop", value: `${devices.mobile} / ${devices.desktop}`, icon: Smartphone, color: "text-violet-600" },
+        ].map((s) => (
+          <Card key={s.label} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                <s.icon className={`h-5 w-5 ${s.color}`} />
+              </div>
+              <div>
+                <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-slate-500">{s.label}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-cyan-500" />
+              Pageviews theo ngày — 30 ngày qua
+            </CardTitle>
+            <span className="text-xs text-slate-400">
+              Tracking tự động trên mọi trang public
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <MiniBarChart data={pageviewsByDay} />
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart2 className="h-4 w-4 text-indigo-500" />
+              Top trang được xem
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {topPages.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-8">Chưa có dữ liệu pageview</p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {topPages.map((p) => {
+                  const max = topPages[0]?.views ?? 1;
+                  return (
+                    <div key={p.path} className="px-5 py-2.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <code className="text-xs text-slate-700 truncate">{p.path}</code>
+                        <span className="text-xs font-semibold text-slate-500 shrink-0 ml-3">{p.views}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500" style={{ width: `${(p.views / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-emerald-500" />
+              Nguồn truy cập (referrer)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {referrers.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-8">Chưa có referrer — đa số truy cập trực tiếp</p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {referrers.map((r) => (
+                  <div key={r.referrer} className="flex items-center justify-between px-5 py-2.5">
+                    <span className="text-sm text-slate-700 truncate">{r.referrer}</span>
+                    <Badge variant="info" className="shrink-0 ml-3">{r.views} lượt</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Lead status breakdown */}

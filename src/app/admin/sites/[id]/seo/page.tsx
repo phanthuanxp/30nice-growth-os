@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { AiWriter } from "@/components/admin/ai-writer";
 import { getTenantById } from "@/server/queries/tenants";
 import { runSeoAudit } from "@/server/queries/seo";
+import { prisma } from "@/server/db";
+import { BatchSeoClient, RedirectsClient, RobotsClient } from "./seo-tools-client";
+import type { MissingMetaItem, RedirectRule } from "@/server/actions/seo";
 import type { AiProvider } from "@/app/api/ai/generate/route";
 
 interface Props {
@@ -55,6 +58,36 @@ export default async function SiteSeoPage({ params }: Props) {
   if (!tenant) notFound();
 
   const audit = await runSeoAudit(id).catch(() => null);
+
+  const [missingPages, missingPosts, redirectsIntegration, robotsIntegration] = await Promise.all([
+    prisma.page.findMany({
+      where: { tenantId: id, OR: [{ seoTitle: null }, { seoTitle: "" }, { seoDescription: null }, { seoDescription: "" }] },
+      select: { id: true, title: true, seoTitle: true, seoDescription: true },
+    }).catch(() => []),
+    prisma.post.findMany({
+      where: { tenantId: id, OR: [{ seoTitle: null }, { seoTitle: "" }, { seoDescription: null }, { seoDescription: "" }] },
+      select: { id: true, title: true, seoTitle: true, seoDescription: true },
+    }).catch(() => []),
+    prisma.integration.findFirst({ where: { tenantId: id, provider: "redirects" }, select: { config: true } }).catch(() => null),
+    prisma.integration.findFirst({ where: { tenantId: id, provider: "robots_txt" }, select: { config: true } }).catch(() => null),
+  ]);
+
+  const missingMeta: MissingMetaItem[] = [
+    ...missingPages.map((p) => ({
+      id: p.id, resource: "page" as const, title: p.title,
+      missingTitle: !p.seoTitle, missingDescription: !p.seoDescription,
+    })),
+    ...missingPosts.map((p) => ({
+      id: p.id, resource: "post" as const, title: p.title,
+      missingTitle: !p.seoTitle, missingDescription: !p.seoDescription,
+    })),
+  ];
+
+  const redirectRules: RedirectRule[] = (() => {
+    const rules = (redirectsIntegration?.config as { rules?: RedirectRule[] } | null)?.rules;
+    return Array.isArray(rules) ? rules : [];
+  })();
+  const robotsContent = (robotsIntegration?.config as { content?: string } | null)?.content ?? "";
 
   const configuredProviders: AiProvider[] = [];
   if (process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.startsWith("sk-ant-api03-...")) configuredProviders.push("claude");
@@ -164,6 +197,13 @@ export default async function SiteSeoPage({ params }: Props) {
           </CardContent>
         </Card>
       )}
+
+      <BatchSeoClient tenantId={id} items={missingMeta} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RedirectsClient tenantId={id} rules={redirectRules} />
+        <RobotsClient tenantId={id} initial={robotsContent} />
+      </div>
 
       <AiWriter configuredProviders={configuredProviders} />
     </div>

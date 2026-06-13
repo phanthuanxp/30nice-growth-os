@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from "@/server/db";
@@ -10,13 +11,23 @@ export async function POST(req: NextRequest) {
       name: string;
       phone: string;
       message?: string;
+      sourceType?: string;
+      utmSource?: string;
+      utmMedium?: string;
+      utmCampaign?: string;
     };
 
     if (!body.name || !body.phone) {
       return NextResponse.json({ error: "Thiếu tên hoặc số điện thoại" }, { status: 400 });
     }
 
-    const host = (await headers()).get("host")?.replace(/^www\./, "") ?? "";
+    const headerStore = await headers();
+    const host = headerStore.get("host")?.replace(/^www\./, "") ?? "";
+    const userAgent = headerStore.get("user-agent") ?? undefined;
+    const forwardedFor = headerStore.get("x-forwarded-for") ?? "";
+    const ipHash = forwardedFor
+      ? crypto.createHash("sha256").update(forwardedFor.split(",")[0].trim()).digest("hex")
+      : undefined;
 
     let tenantId: string | null = null;
     try {
@@ -39,8 +50,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, note: "no-tenant" });
     }
 
-    // Save lead
-    await prisma.lead.create({
+    // Save lead and raw form submission
+    const lead = await prisma.lead.create({
       data: {
         tenantId,
         name: body.name,
@@ -48,9 +59,42 @@ export async function POST(req: NextRequest) {
         message: body.message ?? null,
         sourcePath: "/",
         sourceDomain: host,
+        sourceType: body.sourceType ?? "booking_form",
+        utmSource: body.utmSource,
+        utmMedium: body.utmMedium,
+        utmCampaign: body.utmCampaign,
         status: "NEW",
+        lastActivityAt: new Date(),
       },
     });
+
+    await prisma.leadActivity.create({
+      data: {
+        tenantId,
+        leadId: lead.id,
+        type: "created",
+        title: "Lead mới từ form đặt xe",
+        metadata: { sourceDomain: host, sourcePath: "/" },
+      },
+    }).catch(() => null);
+
+    const bookingForm = await prisma.form.findUnique({
+      where: { tenantId_slug: { tenantId, slug: "booking" } },
+      select: { id: true },
+    }).catch(() => null);
+
+    await prisma.formSubmission.create({
+      data: {
+        tenantId,
+        formId: bookingForm?.id ?? null,
+        leadId: lead.id,
+        payload: body,
+        sourcePath: "/",
+        sourceDomain: host,
+        userAgent,
+        ipHash,
+      },
+    }).catch(() => null);
 
     // Dispatch notifications (non-blocking)
     try {

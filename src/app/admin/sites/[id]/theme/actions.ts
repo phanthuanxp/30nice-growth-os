@@ -2,6 +2,7 @@
 
 import { prisma } from "@/server/db";
 import { getSession } from "@/server/auth/session";
+import { requireTenantAccess } from "@/server/permissions/guard";
 import type { TaxiThemeConfig } from "@/components/themes/taxi/types";
 
 export async function saveThemeSettings(
@@ -17,6 +18,7 @@ export async function saveThemeSettings(
 ) {
   const user = await getSession();
   if (!user) return { error: "Unauthorized" };
+  await requireTenantAccess(siteId, "EDITOR");
 
   try {
     const existing = await prisma.siteSettings.findUnique({ where: { tenantId: siteId } });

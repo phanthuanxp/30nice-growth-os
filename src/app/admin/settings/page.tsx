@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DEMO_CREDENTIALS } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -276,27 +275,18 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Demo auth */}
-        <Card className="border-amber-200 bg-amber-50">
+        {/* Auth */}
+        <Card className="border-emerald-200 bg-emerald-50">
           <CardHeader>
-            <CardTitle className="text-amber-800">Tài khoản Demo</CardTitle>
-            <CardDescription className="text-amber-700">
-              Chỉ dùng cho development. Khi database hoạt động, tài khoản này bị bỏ qua.
+            <CardTitle className="text-emerald-800">Xác thực quản trị</CardTitle>
+            <CardDescription className="text-emerald-700">
+              Hệ thống đã dùng tài khoản quản trị lưu trong database với mật khẩu băm bcrypt. Không còn fallback demo login.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-amber-700 w-20">Email:</span>
-              <code className="text-sm bg-amber-100 rounded px-2 py-0.5">{DEMO_CREDENTIALS.email}</code>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-amber-700 w-20">Mật khẩu:</span>
-              <code className="text-sm bg-amber-100 rounded px-2 py-0.5">{DEMO_CREDENTIALS.password}</code>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-amber-700 w-20">Quyền:</span>
-              <Badge variant="warning">SUPER_ADMIN</Badge>
-            </div>
+          <CardContent>
+            <p className="text-sm text-emerald-700">
+              Dùng script seed hoặc chức năng Users để tạo/cập nhật SUPER_ADMIN. Không hiển thị mật khẩu trong giao diện.
+            </p>
           </CardContent>
         </Card>
       </div>

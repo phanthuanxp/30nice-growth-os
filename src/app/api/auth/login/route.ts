@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { setSession, DEMO_CREDENTIALS } from "@/server/auth/session";
+import { setSession } from "@/server/auth/session";
 import { getUserByEmail } from "@/server/queries/users";
+import { writeAuditLog } from "@/server/audit/log";
 import type { Role } from "@/server/auth/session";
 
 const schema = z.object({
@@ -19,34 +20,27 @@ export async function POST(request: Request) {
 
   const { email, password } = parsed.data;
 
-  // 1. Try real DB user first
   try {
     const dbUser = await getUserByEmail(email);
-    if (dbUser?.passwordHash) {
-      const valid = await bcrypt.compare(password, dbUser.passwordHash);
-      if (!valid) {
-        return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 });
-      }
-      await setSession({
-        id: dbUser.id,
-        name: dbUser.name ?? email,
-        email: dbUser.email,
-        role: dbUser.role as Role,
-      });
-      return NextResponse.json({ ok: true });
+    if (!dbUser?.passwordHash) {
+      return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 });
     }
-  } catch {
-    // DB not available — fall through to demo credentials
-  }
 
-  // 2. Fallback: demo credentials (MVP / no DB)
-  if (
-    email === DEMO_CREDENTIALS.email &&
-    password === DEMO_CREDENTIALS.password
-  ) {
-    await setSession(DEMO_CREDENTIALS.user);
+    const valid = await bcrypt.compare(password, dbUser.passwordHash);
+    if (!valid) {
+      await writeAuditLog({ userId: dbUser.id, action: "auth.login_failed", resource: "User" });
+      return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 });
+    }
+
+    await setSession({
+      id: dbUser.id,
+      name: dbUser.name ?? email,
+      email: dbUser.email,
+      role: dbUser.role as Role,
+    });
+    await writeAuditLog({ userId: dbUser.id, action: "auth.login_success", resource: "User" });
     return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Không thể đăng nhập lúc này" }, { status: 500 });
   }
-
-  return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 });
 }

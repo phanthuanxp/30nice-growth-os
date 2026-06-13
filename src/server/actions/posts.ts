@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAuth } from "@/server/auth/session";
 import { can } from "@/server/permissions";
-import { createPost, updatePost, deletePost } from "@/server/queries/posts";
+import { createPost, updatePost, deletePost, getPostById } from "@/server/queries/posts";
+import { requireTenantAccess } from "@/server/permissions/guard";
+import { snapshotPostRevision } from "@/server/cms/revisions";
 import { prisma } from "@/server/db";
 
 const postSchema = z.object({
@@ -45,6 +47,7 @@ export async function createPostAction(
 
   const tenantId = formData.get("tenantId") as string;
   if (!tenantId) return { error: "Vui lòng chọn site" };
+  await requireTenantAccess(tenantId, "EDITOR");
 
   const raw = Object.fromEntries(formData);
   const parsed = postSchema.safeParse(raw);
@@ -60,6 +63,7 @@ export async function createPostAction(
       categoryId: parsed.data.categoryId || null,
       publishedAt: resolvedPublishedAt,
     });
+    await snapshotPostRevision(post.id, user.id);
     revalidatePath("/admin/blog");
     return { success: true, id: post.id };
   } catch (e) {
@@ -86,11 +90,15 @@ export async function updatePostAction(
       parsed.data.status === "PUBLISHED"
         ? parsed.data.publishedAt ? new Date(parsed.data.publishedAt) : new Date()
         : null;
+    const existing = await getPostById(id);
+    if (!existing) return { error: "Không tìm thấy bài viết" };
+    await requireTenantAccess(existing.tenantId, "EDITOR");
     await updatePost(id, {
       ...parsed.data,
       categoryId: parsed.data.categoryId || null,
       publishedAt: resolvedPublishedAt,
     });
+    await snapshotPostRevision(id, user.id);
     revalidatePath("/admin/blog");
     revalidatePath(`/admin/blog/${id}`);
     return { success: true };
@@ -134,6 +142,8 @@ export async function createCategoryAction(
 ): Promise<CategoryActionState> {
   const user = await requireAuth();
   if (!can(user.role, "EDITOR")) return { error: "Không đủ quyền" };
+
+  await requireTenantAccess(tenantId, "EDITOR");
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return { error: "Tên danh mục không được trống" };

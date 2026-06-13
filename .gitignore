@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local upgrade/backups
+.backup-v2/
+.upgrade-work/
+*.tar.gz
+
 # vercel
 .vercel
 

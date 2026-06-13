@@ -22,7 +22,7 @@ export function TaxiFooter({ config, siteName, logoUrl, email, address }: Props)
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               {logoUrl ? (
-                <img src={logoUrl} alt={siteName} className="h-9 w-auto brightness-0 invert" />
+                <img src={logoUrl} alt={siteName} loading="lazy" decoding="async" className="h-9 w-auto brightness-0 invert" />
               ) : (
                 <div className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center">
                   <Car className="h-5 w-5 text-white" />

@@ -42,6 +42,7 @@ model User {
   role                Role                 @default(VIEWER)
   organizationMembers OrganizationMember[]
   tenantMembers       TenantMember[]
+  auditLogs           AuditLog[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 }
@@ -89,15 +90,25 @@ model Tenant {
   settings       SiteSettings?
   domains        Domain[]
   pages          Page[]
+  pageRevisions  PageRevision[]
   posts          Post[]
+  postRevisions  PostRevision[]
   categories     Category[]
   mediaAssets    MediaAsset[]
   menus          Menu[]
+  forms          Form[]
+  formSubmissions FormSubmission[]
+  redirectRules  RedirectRule[]
   leads          Lead[]
+  leadActivities LeadActivity[]
+  leadNotes      LeadNote[]
+  leadStatusHistories LeadStatusHistory[]
   aiUsageLogs    AiUsageLog[]
   seoAudits      SeoAudit[]
   integrations   Integration[]
   automationJobs AutomationJob[]
+  analyticsEvents AnalyticsEvent[]
+  auditLogs      AuditLog[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -158,11 +169,34 @@ model Page {
   ogImageUrl     String?
   uiBlocks       Json
   tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  revisions      PageRevision[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@unique([tenantId, slug])
   @@index([tenantId, status])
+}
+
+model PageRevision {
+  id             String        @id @default(cuid())
+  tenantId       String
+  pageId         String
+  title          String
+  slug           String
+  status         ContentStatus
+  summary        String?
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+  uiBlocks       Json
+  version        Int           @default(1)
+  createdById    String?
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  page           Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  @@index([tenantId, pageId])
+  @@index([pageId, version])
 }
 
 model Category {
@@ -201,11 +235,43 @@ model Post {
   publishedAt    DateTime?
   tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category       Category?     @relation(fields: [categoryId], references: [id])
+  revisions      PostRevision[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@unique([tenantId, slug])
   @@index([tenantId, status])
+}
+
+model PostRevision {
+  id             String        @id @default(cuid())
+  tenantId       String
+  postId         String
+  categoryId     String?
+  title          String
+  slug           String
+  excerpt        String?
+  content        String
+  featuredImage  String?
+  status         ContentStatus
+  seoTitle       String?
+  seoDescription String?
+  ogTitle        String?
+  ogDescription  String?
+  ogImage        String?
+  twitterCard    String?
+  schemaType     String?
+  schemaData     String?
+  robotsMeta     String?
+  canonicalUrl   String?
+  version        Int           @default(1)
+  createdById    String?
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  post           Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  @@index([tenantId, postId])
+  @@index([postId, version])
 }
 
 model MediaAsset {
@@ -248,6 +314,59 @@ model MenuItem {
   @@index([menuId])
 }
 
+model Form {
+  id          String           @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String
+  description String?
+  fields      Json
+  settings    Json?
+  active      Boolean          @default(true)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, active])
+}
+
+model FormSubmission {
+  id           String   @id @default(cuid())
+  tenantId     String
+  formId       String?
+  leadId       String?
+  payload      Json
+  sourcePath   String?
+  sourceDomain String?
+  userAgent    String?
+  ipHash       String?
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  form         Form?    @relation(fields: [formId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([formId])
+  @@index([leadId])
+}
+
+model RedirectRule {
+  id          String   @id @default(cuid())
+  tenantId    String
+  fromPath    String
+  toPath      String
+  statusCode  Int      @default(301)
+  active      Boolean  @default(true)
+  note        String?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, fromPath])
+  @@index([tenantId, active])
+}
+
 model Lead {
   id           String     @id @default(cuid())
   tenantId     String
@@ -259,11 +378,68 @@ model Lead {
   sourceDomain String?
   status       LeadStatus @default(NEW)
   notes        String?
+  sourceType   String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  assignedToId String?
+  lastActivityAt DateTime?
   tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activities   LeadActivity[]
+  leadNotes    LeadNote[]
+  statusHistory LeadStatusHistory[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   @@index([tenantId, status])
+  @@index([tenantId, sourceType])
+  @@index([assignedToId])
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  tenantId  String
+  leadId    String
+  type      String
+  title     String
+  detail    String?
+  metadata  Json?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  tenantId  String
+  leadId    String
+  body      String
+  authorId  String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model LeadStatusHistory {
+  id        String     @id @default(cuid())
+  tenantId  String
+  leadId    String
+  fromStatus LeadStatus?
+  toStatus   LeadStatus
+  changedById String?
+  note      String?
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([leadId, createdAt])
 }
 
 model AiUsageLog {
@@ -328,4 +504,35 @@ model AiProviderConfig {
   priority   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  type      String   @default("pageview")
+  path      String
+  referrer  String?
+  device    String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, path])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  tenantId  String?
+  action    String
+  resource  String?
+  resourceId String?
+  metadata  Json?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([action])
 }

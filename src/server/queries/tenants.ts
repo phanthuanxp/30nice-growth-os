@@ -27,11 +27,15 @@ export async function getTenantBySlug(slug: string) {
 }
 
 export async function getTenantByDomain(host: string) {
+  // Check Domain table first (supports multiple domains per tenant)
   const domain = await prisma.domain.findUnique({
     where: { host },
     include: { tenant: true },
   });
-  return domain?.tenant ?? null;
+  if (domain?.tenant) return domain.tenant;
+
+  // Fallback: match Tenant.primaryDomain (for tenants not yet migrated to Domain table)
+  return prisma.tenant.findFirst({ where: { primaryDomain: host } });
 }
 
 export type CreateTenantInput = {

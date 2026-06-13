@@ -267,9 +267,21 @@ function ThemeDetailModal({
 
         <div className="flex-1 overflow-y-auto">
           {/* Preview */}
-          <div className="h-52 m-5 rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
+          <div className="h-52 mx-5 mt-5 rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
             <ThemePreviewMockup theme={theme} />
           </div>
+          {theme.status === "available" && (
+            <div className="mx-5 mt-2 mb-3">
+              <a
+                href={`/theme-preview/${theme.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                Xem trước bản thật với dữ liệu mẫu ↗
+              </a>
+            </div>
+          )}
 
           <div className="px-6 pb-6 space-y-5">
             {/* Description */}

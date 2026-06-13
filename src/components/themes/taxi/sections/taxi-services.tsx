@@ -26,7 +26,7 @@ export function TaxiServices({ config }: Props) {
               {/* Image area */}
               <div className="relative h-48 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
                 {svc.image ? (
-                  <img src={svc.image} alt={svc.title} className="w-full h-full object-cover" />
+                  <img src={svc.image} alt={svc.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-white/80">
                     <Car className="h-16 w-16 text-white/60" />

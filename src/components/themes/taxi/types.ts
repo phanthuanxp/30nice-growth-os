@@ -37,6 +37,17 @@ export interface TaxiFaq {
   answer: string;
 }
 
+export type TaxiSectionKey =
+  | "hero"
+  | "booking"
+  | "features"
+  | "services"
+  | "pricing"
+  | "whyChoose"
+  | "testimonials"
+  | "faq"
+  | "cta";
+
 export interface TaxiThemeConfig {
   phone: string;
   zaloLink: string;
@@ -60,6 +71,18 @@ export interface TaxiThemeConfig {
   footerServiceAreas: string[];
   footerLinks: { label: string; href: string }[];
   copyrightName: string;
+  sectionOrder: TaxiSectionKey[];
+  hiddenSections: TaxiSectionKey[];
+  popup?: TaxiPopupConfig;
+}
+
+export interface TaxiPopupConfig {
+  enabled: boolean;
+  trigger: "exit-intent" | "time-delay";
+  delaySeconds: number;
+  title: string;
+  description: string;
+  ctaText: string;
 }
 
 export const DEFAULT_TAXI_CONFIG: TaxiThemeConfig = {
@@ -234,4 +257,14 @@ export const DEFAULT_TAXI_CONFIG: TaxiThemeConfig = {
     { label: "Liên hệ đặt xe", href: "/lien-he" },
   ],
   copyrightName: "Taxi Bắc Ninh",
+  sectionOrder: ["hero", "booking", "features", "services", "pricing", "whyChoose", "testimonials", "faq", "cta"],
+  hiddenSections: [],
+  popup: {
+    enabled: false,
+    trigger: "exit-intent",
+    delaySeconds: 30,
+    title: "Khoan đã! Nhận báo giá trọn gói ngay",
+    description: "Để lại số điện thoại, tài xế gọi lại tư vấn lộ trình và giá tốt nhất trong 5 phút.",
+    ctaText: "Gọi lại cho tôi",
+  },
 };

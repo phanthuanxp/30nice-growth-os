@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAuth } from "@/server/auth/session";
 import { can } from "@/server/permissions";
-import { createPage, updatePage, deletePage } from "@/server/queries/pages";
+import { createPage, updatePage, deletePage, getPageById } from "@/server/queries/pages";
+import { requireTenantAccess } from "@/server/permissions/guard";
+import { snapshotPageRevision } from "@/server/cms/revisions";
 
 const pageSchema = z.object({
   title: z.string().min(1).max(200),
@@ -39,6 +41,7 @@ export async function createPageAction(
 
   const tenantId = formData.get("tenantId") as string;
   if (!tenantId) return { error: "Vui lòng chọn site" };
+  await requireTenantAccess(tenantId, "EDITOR");
 
   const raw = Object.fromEntries(formData);
   const parsed = pageSchema.safeParse(raw);
@@ -49,6 +52,7 @@ export async function createPageAction(
       ...parsed.data,
       uiBlocks: parseBlocks(parsed.data.uiBlocksJson),
     });
+    await snapshotPageRevision(page.id, user.id);
     revalidatePath("/admin/pages");
     return { success: true, id: page.id };
   } catch (e) {
@@ -71,10 +75,14 @@ export async function updatePageAction(
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
+    const existing = await getPageById(id);
+    if (!existing) return { error: "Không tìm thấy trang" };
+    await requireTenantAccess(existing.tenantId, "EDITOR");
     await updatePage(id, {
       ...parsed.data,
       uiBlocks: parseBlocks(parsed.data.uiBlocksJson),
     });
+    await snapshotPageRevision(id, user.id);
     revalidatePath("/admin/pages");
     revalidatePath(`/admin/pages/${id}`);
     return { success: true };

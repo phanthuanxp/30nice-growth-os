@@ -109,10 +109,7 @@ export default function LoginPage() {
 
         <div className="mt-4 text-center">
           <p className="text-xs text-slate-600">
-            Demo:{" "}
-            <span className="text-slate-400">admin@30nice.vn</span>
-            {" / "}
-            <span className="text-slate-400">admin123</span>
+            Dùng tài khoản quản trị đã được tạo trong database.
           </p>
         </div>
       </div>

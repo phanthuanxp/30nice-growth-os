@@ -4,13 +4,15 @@ import { Users, PhoneCall, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LeadStatusForm } from "@/components/admin/lead-status-form";
 import { getTenantById } from "@/server/queries/tenants";
-import { getLeads } from "@/server/queries/leads";
+import { getLeads, type LeadFilters } from "@/server/queries/leads";
+import type { LeadStatus } from "@prisma/client";
+import { LeadsToolbar } from "./leads-toolbar";
+import { LeadsTable, type LeadRow } from "./leads-table";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -18,8 +20,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tenant = await getTenantById(id).catch(() => null);
   return { title: tenant ? `Leads — ${tenant.name}` : "Leads" };
 }
-
-type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
 
 const statusConfig: Record<
   LeadStatus,
@@ -32,19 +32,58 @@ const statusConfig: Record<
   WON: { variant: "success", label: "Chốt được" },
 };
 
-export default async function SiteLeadsPage({ params }: Props) {
+export default async function SiteLeadsPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const sp = await searchParams;
   const tenant = await getTenantById(id).catch(() => null);
   if (!tenant) notFound();
 
-  const leads = await getLeads(id).catch(() => []);
+  const filters: LeadFilters = {};
+  if (sp.status && ["NEW", "CONTACTED", "QUALIFIED", "LOST", "WON"].includes(sp.status)) {
+    filters.status = sp.status as LeadStatus;
+  }
+  if (sp.q) filters.search = sp.q;
+  if (sp.from) filters.from = new Date(sp.from);
+  if (sp.to) {
+    const d = new Date(sp.to);
+    d.setHours(23, 59, 59, 999);
+    filters.to = d;
+  }
+
+  const [leads, allLeads] = await Promise.all([
+    getLeads(id, filters).catch(() => []),
+    getLeads(id).catch(() => []),
+  ]);
 
   const counts = Object.fromEntries(
     (["NEW", "CONTACTED", "QUALIFIED", "LOST", "WON"] as LeadStatus[]).map((s) => [
       s,
-      leads.filter((l) => l.status === s).length,
+      allLeads.filter((l) => l.status === s).length,
     ])
   ) as Record<LeadStatus, number>;
+
+  const fmt = new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+
+  const rows: LeadRow[] = leads.map((l) => ({
+    id: l.id,
+    name: l.name,
+    phone: l.phone,
+    email: l.email,
+    message: l.message,
+    sourcePath: l.sourcePath,
+    sourceDomain: l.sourceDomain,
+    sourceType: l.sourceType,
+    utmSource: l.utmSource,
+    status: l.status,
+    notes: l.notes,
+    activityCount: l._count?.activities ?? 0,
+    noteCount: l._count?.leadNotes ?? 0,
+    createdAt: fmt.format(l.createdAt),
+  }));
 
   return (
     <div>
@@ -70,7 +109,7 @@ export default async function SiteLeadsPage({ params }: Props) {
             <Users className="h-5 w-5 text-sky-500" />
           </div>
           <div>
-            <p className="text-lg font-bold text-slate-800">{leads.length}</p>
+            <p className="text-lg font-bold text-slate-800">{allLeads.length}</p>
             <p className="text-xs text-slate-500">Tổng leads</p>
           </div>
         </Card>
@@ -96,56 +135,15 @@ export default async function SiteLeadsPage({ params }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tất cả leads</CardTitle>
+          <CardTitle>
+            Danh sách leads{leads.length !== allLeads.length ? ` (${leads.length}/${allLeads.length})` : ` (${leads.length})`}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {leads.length === 0 ? (
-            <div className="py-12 text-center">
-              <Users className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-sm text-slate-500">Chưa có lead nào</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHead>
-                <tr>
-                  <TableHeader>Khách hàng</TableHeader>
-                  <TableHeader>Nội dung</TableHeader>
-                  <TableHeader>Nguồn</TableHeader>
-                  <TableHeader>Trạng thái</TableHeader>
-                </tr>
-              </TableHead>
-              <TableBody>
-                {leads.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">
-                          {l.name[0]}
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{l.name}</p>
-                          <p className="text-xs text-slate-400">{l.phone}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-500 max-w-xs">
-                      <span className="line-clamp-2">{l.message}</span>
-                    </TableCell>
-                    <TableCell>
-                      {l.sourcePath && (
-                        <code className="text-xs bg-slate-100 rounded px-1.5 py-0.5 text-slate-600">
-                          {l.sourcePath}
-                        </code>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <LeadStatusForm leadId={l.id} currentStatus={l.status as LeadStatus} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <div className="px-5 pt-4">
+            <LeadsToolbar tenantId={id} />
+          </div>
+          <LeadsTable tenantId={id} leads={rows} />
         </CardContent>
       </Card>
     </div>
