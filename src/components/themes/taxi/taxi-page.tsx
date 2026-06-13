@@ -73,14 +73,40 @@ export function TaxiPage({ siteName, logoUrl, email, address, themeConfig }: Pro
     hiddenSections: themeConfig?.hiddenSections ?? DEFAULT_TAXI_CONFIG.hiddenSections,
   };
 
+  const sections = normalizeSections(config).filter((section) => section !== "hero" && section !== "booking");
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       <TaxiHeader config={config} siteName={siteName} logoUrl={logoUrl} />
 
-      <main>{normalizeSections(config).map((section) => renderTaxiSection(section, config))}</main>
+      <main className="mx-auto max-w-6xl px-4 pb-24 pt-4 sm:px-6 sm:pb-10 lg:px-8">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-stretch">
+          <TaxiHero config={config} />
+          <TaxiBooking config={config} />
+        </div>
+
+        {sections.map((section) => renderTaxiSection(section, config))}
+      </main>
 
       <TaxiFooter config={config} siteName={siteName} logoUrl={logoUrl} email={email} address={address} />
       <TaxiPopup config={config} />
+
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-3 py-2 shadow-[0_-10px_30px_rgba(15,23,42,0.16)] backdrop-blur md:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
+          <a
+            href={`tel:${config.phone.replace(/\s/g, "")}`}
+            className="rounded-lg bg-emerald-600 px-3 py-3 text-center text-sm font-bold text-white"
+          >
+            Gọi {config.phone}
+          </a>
+          <a
+            href={config.zaloLink}
+            className="rounded-lg bg-sky-600 px-3 py-3 text-center text-sm font-bold text-white"
+          >
+            Chat Zalo
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

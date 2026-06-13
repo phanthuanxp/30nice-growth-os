@@ -48,14 +48,15 @@ export function TaxiBooking({ config }: Props) {
   };
 
   return (
-    <section id="dat-xe" className="py-16 bg-white">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">Đặt Xe & Nhận Báo Giá</h2>
-          <p className="text-gray-500">Điền thông tin — Nhận báo giá trong 2 phút qua Zalo/điện thoại</p>
-        </div>
+    <section id="dat-xe" className="h-full rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Nhận báo giá nhanh</p>
+        <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">Đặt Xe & Nhận Báo Giá</h2>
+        <p className="mt-1 text-sm text-slate-500">Điền thông tin — Nhận báo giá trong 2 phút qua Zalo/điện thoại</p>
+      </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl shadow-blue-100/60 border border-gray-100 p-6 sm:p-8">
+      <div>
+        <div>
           {success ? (
             <div className="py-12 flex flex-col items-center gap-4 text-center">
               <CheckCircle className="h-16 w-16 text-green-500" />
