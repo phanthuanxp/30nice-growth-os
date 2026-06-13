@@ -46,10 +46,11 @@ else
 fi
 
 echo "=== [3/6] Install dependencies ==="
+# Build/typecheck need devDependencies such as @types/* even when NODE_ENV=production.
 if [ -f package-lock.json ]; then
-  npm ci
+  npm ci --include=dev
 else
-  npm install
+  npm install --include=dev
 fi
 
 echo "=== [4/6] Prisma generate / migrations ==="
