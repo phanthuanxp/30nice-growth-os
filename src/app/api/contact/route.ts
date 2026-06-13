@@ -5,10 +5,10 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 
 const schema = z.object({
-  name: z.string().min(1).max(100),
-  phone: z.string().max(20).optional(),
-  email: z.string().email().optional(),
-  message: z.string().max(2000).optional(),
+  name: z.string().trim().min(1).max(100),
+  phone: z.string().trim().max(20).optional(),
+  email: z.string().trim().email().optional(),
+  message: z.string().trim().max(2000).optional(),
   sourcePath: z.string().max(500).optional(),
   tenantId: z.string().optional(),
   formSlug: z.string().max(120).optional(),
@@ -16,6 +16,9 @@ const schema = z.object({
   utmSource: z.string().max(120).optional(),
   utmMedium: z.string().max(120).optional(),
   utmCampaign: z.string().max(160).optional(),
+}).refine((data) => Boolean(data.phone || data.email), {
+  message: "Cần số điện thoại hoặc email",
+  path: ["phone"],
 });
 
 export async function POST(request: Request) {
