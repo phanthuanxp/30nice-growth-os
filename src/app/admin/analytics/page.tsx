@@ -85,7 +85,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Analytics"
+        title="Phân tích"
         description="Phân tích traffic, leads và hiệu suất nội dung."
       />
 
@@ -277,7 +277,7 @@ export default async function AnalyticsPage() {
               <TableHead>
                 <tr>
                   <TableHeader>Trang nguồn</TableHeader>
-                  <TableHeader>Leads</TableHeader>
+                  <TableHeader>Lead</TableHeader>
                   <TableHeader>Chốt</TableHeader>
                   <TableHeader>Tỉ lệ</TableHeader>
                 </tr>
@@ -321,7 +321,7 @@ export default async function AnalyticsPage() {
             <TableHead>
               <tr>
                 <TableHeader>Site</TableHeader>
-                <TableHeader>Pages</TableHeader>
+                <TableHeader>Trang</TableHeader>
                 <TableHeader>Bài viết</TableHeader>
                 <TableHeader>Tổng leads</TableHeader>
                 <TableHeader>Lead mới</TableHeader>

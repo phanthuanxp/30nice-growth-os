@@ -12,7 +12,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `Menus — ${tenant.name}` : "Menus" };
+  return { title: tenant ? `Menu — ${tenant.name}` : "Menu" };
 }
 
 export default async function SiteMenusPage({ params }: Props) {
@@ -49,7 +49,7 @@ export default async function SiteMenusPage({ params }: Props) {
   return (
     <div>
       <PageHeader
-        title="Menu Builder"
+        title="Trình dựng menu"
         description={`Quản lý navigation menu của ${tenant.name}. Menu Header sẽ tự động thay thế navigation của theme.`}
       />
       <MenusClient tenantId={id} menus={menus} />

@@ -24,10 +24,10 @@ type BoardItem = {
 };
 
 const COLUMNS = [
-  { key: "PLANNED", label: "Planned", variant: "neutral" as const },
-  { key: "DRAFT", label: "Draft", variant: "info" as const },
-  { key: "SCHEDULED", label: "Scheduled", variant: "warning" as const },
-  { key: "PUBLISHED", label: "Published", variant: "success" as const },
+  { key: "PLANNED", label: "Đã lên kế hoạch", variant: "neutral" as const },
+  { key: "DRAFT", label: "Bản nháp", variant: "info" as const },
+  { key: "SCHEDULED", label: "Đã hẹn lịch", variant: "warning" as const },
+  { key: "PUBLISHED", label: "Đã xuất bản", variant: "success" as const },
 ];
 
 function dayKey(date: Date) {
@@ -109,34 +109,34 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Publishing Calendar" description="Theo dõi content plan, draft, lịch đăng và trạng thái xuất bản cho mạng lưới site/subdomain." />
+      <PageHeader title="Lịch xuất bản" description="Theo dõi content plan, draft, lịch đăng và trạng thái xuất bản cho mạng lưới site/subdomain." />
 
       {isDemo && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Cần database/migration để xem publishing calendar thật.</div>}
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: "Planned", value: summary.planned, icon: KanbanSquare, color: "text-slate-600" },
-          { label: "Draft", value: summary.draft, icon: Newspaper, color: "text-indigo-600" },
-          { label: "Scheduled", value: summary.scheduled, icon: Clock, color: "text-amber-600" },
-          { label: "Published", value: summary.published, icon: CalendarDays, color: "text-emerald-600" },
+          { label: "Đã lên kế hoạch", value: summary.planned, icon: KanbanSquare, color: "text-slate-600" },
+          { label: "Bản nháp", value: summary.draft, icon: Newspaper, color: "text-indigo-600" },
+          { label: "Đã hẹn lịch", value: summary.scheduled, icon: Clock, color: "text-amber-600" },
+          { label: "Đã xuất bản", value: summary.published, icon: CalendarDays, color: "text-emerald-600" },
         ].map((s) => <Card key={s.label} className="p-4"><s.icon className={`mb-2 h-5 w-5 ${s.color}`} /><p className={`text-2xl font-bold ${s.color}`}>{s.value}</p><p className="text-xs text-slate-500">{s.label}</p></Card>)}
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-indigo-500" />Scheduling Controls</CardTitle><CardDescription>Bulk schedule các item Planned/Draft theo site và tần suất đăng.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-indigo-500" />Điều khiển lịch đăng</CardTitle><CardDescription>Bulk schedule các item Planned/Draft theo site và tần suất đăng.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-2"><BulkScheduleForm tenants={tenants} /><GenerateMissingDraftsForm tenants={tenants} /></div>
           <form className="flex flex-wrap items-center gap-3" action="/admin/publishing">
-            <select name="tenantId" defaultValue={tenantFilter} className="h-9 rounded-lg border border-slate-300 px-3 text-sm"><option value="">All sites</option>{tenants.map((t)=><option key={t.id} value={t.id}>{t.name}</option>)}</select>
-            <select name="status" defaultValue={statusFilter} className="h-9 rounded-lg border border-slate-300 px-3 text-sm"><option value="">All statuses</option>{COLUMNS.map((c)=><option key={c.key} value={c.key}>{c.label}</option>)}</select>
-            <button className="h-9 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50" type="submit">Filter</button>
-            <Link className="text-sm text-slate-500 hover:text-slate-800" href="/admin/publishing">Reset</Link>
+            <select name="tenantId" defaultValue={tenantFilter} className="h-9 rounded-lg border border-slate-300 px-3 text-sm"><option value="">Tất cả site</option>{tenants.map((t)=><option key={t.id} value={t.id}>{t.name}</option>)}</select>
+            <select name="status" defaultValue={statusFilter} className="h-9 rounded-lg border border-slate-300 px-3 text-sm"><option value="">Tất cả trạng thái</option>{COLUMNS.map((c)=><option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            <button className="h-9 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50" type="submit">Lọc</button>
+            <Link className="text-sm text-slate-500 hover:text-slate-800" href="/admin/publishing">Đặt lại</Link>
           </form>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-indigo-500" />14-day Publishing Calendar</CardTitle><CardDescription>Bài đã schedule từ review queue hoặc content plan.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-indigo-500" />Lịch xuất bản 14 ngày</CardTitle><CardDescription>Bài đã schedule từ review queue hoặc content plan.</CardDescription></CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-7">
             {days.map((day) => {
@@ -145,7 +145,7 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
                 <div key={dayKey(day)} className="min-h-32 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                   <p className="text-xs font-semibold text-slate-700">{day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</p>
                   <div className="mt-2 space-y-2">
-                    {entries.length === 0 ? <p className="text-[11px] text-slate-400">No posts</p> : entries.map((entry) => (
+                    {entries.length === 0 ? <p className="text-[11px] text-slate-400">Chưa có bài</p> : entries.map((entry) => (
                       <div key={`${entry.type}-${entry.id}`} className="rounded-lg bg-white p-2 shadow-sm">
                         <p className="line-clamp-2 text-[11px] font-medium text-slate-700">{entry.title}</p>
                         <div className="mt-1 flex items-center justify-between gap-2"><span className="truncate text-[10px] text-slate-400">{entry.site || "Global"}</span><Badge variant={statusVariant(entry.status)}>{entry.status}</Badge></div>
@@ -166,13 +166,13 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
             <Card key={col.key}>
               <CardHeader><CardTitle className="flex items-center justify-between text-sm"><span>{col.label}</span><Badge variant={col.variant}>{colItems.length}</Badge></CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {colItems.length === 0 ? <p className="text-sm text-slate-400">No items</p> : colItems.map((item) => (
+                {colItems.length === 0 ? <p className="text-sm text-slate-400">Chưa có mục</p> : colItems.map((item) => (
                   <div key={item.id} className="rounded-xl border border-slate-200 p-3">
                     <p className="text-sm font-semibold text-slate-800 line-clamp-2">{item.title}</p>
                     <p className="mt-1 text-xs text-slate-500">{item.keyword}</p>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400"><span>{item.siteName || "No site"}</span><span>Priority {item.priority}</span>{item.scheduledAt && <span>{item.scheduledAt.toLocaleDateString("vi-VN")}</span>}</div>
                     {item.postQuality && <div className="mt-2 flex flex-wrap gap-2"><Badge variant={(item.postQuality.qualityScore ?? 0) >= 75 ? "success" : "warning"}>Quality {item.postQuality.qualityScore ?? "—"}</Badge><Badge variant={(item.postQuality.seoScore ?? 0) >= 75 ? "success" : "warning"}>SEO {item.postQuality.seoScore ?? "—"}</Badge></div>}
-                    {item.postId && <Link className="mt-2 inline-block text-xs font-medium text-indigo-600 hover:underline" href={`/admin/blog/${item.postId}`}>Open draft/post →</Link>}
+                    {item.postId && <Link className="mt-2 inline-block text-xs font-medium text-indigo-600 hover:underline" href={`/admin/blog/${item.postId}`}>Mở bản nháp/bài viết →</Link>}
                     <GenerateSingleDraftButton itemId={item.id} disabled={Boolean(item.postId) || item.status === "PUBLISHED"} />
                     {item.status !== "PUBLISHED" && <ScheduleItemForm itemId={item.id} current={item.scheduledAt} />}
                   </div>

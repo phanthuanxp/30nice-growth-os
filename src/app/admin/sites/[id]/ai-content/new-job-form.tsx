@@ -69,8 +69,8 @@ export function NewContentJobForm({ tenantId }: { tenantId: string }) {
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Loại nội dung</label>
               <select name="contentType" defaultValue="BLOG_POST" className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm bg-white">
-                <option value="BLOG_POST">Blog Post</option>
-                <option value="LANDING_PAGE">Landing Page</option>
+                <option value="BLOG_POST">Bài blog</option>
+                <option value="LANDING_PAGE">Landing page</option>
                 <option value="SERVICE_PAGE">Trang Dịch vụ</option>
                 <option value="FAQ_PAGE">FAQ</option>
                 <option value="REVIEW_PAGE">Review</option>
@@ -90,7 +90,7 @@ export function NewContentJobForm({ tenantId }: { tenantId: string }) {
               <label className="text-xs font-medium text-slate-600 block mb-1">Ngôn ngữ</label>
               <select name="language" defaultValue="vi" className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm bg-white">
                 <option value="vi">Tiếng Việt</option>
-                <option value="en">English</option>
+                <option value="en">Tiếng Anh</option>
               </select>
             </div>
           </div>

@@ -18,7 +18,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `Leads — ${tenant.name}` : "Leads" };
+  return { title: tenant ? `Lead — ${tenant.name}` : "Lead" };
 }
 
 const statusConfig: Record<
@@ -88,7 +88,7 @@ export default async function SiteLeadsPage({ params, searchParams }: Props) {
   return (
     <div>
       <PageHeader
-        title="Leads"
+        title="Lead"
         description={`Khách hàng tiềm năng từ ${tenant.name}.`}
       />
 

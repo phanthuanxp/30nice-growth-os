@@ -18,7 +18,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `Blog — ${tenant.name}` : "Blog" };
+  return { title: tenant ? `Bài viết — ${tenant.name}` : "Bài viết" };
 }
 
 const statusVariant = (s: string) =>
@@ -37,7 +37,7 @@ export default async function SiteBlogPage({ params }: Props) {
   return (
     <div>
       <PageHeader
-        title="Blog"
+        title="Bài viết"
         description={`Bài viết của ${tenant.name}.`}
         action={
           <Link href={`/admin/sites/${id}/blog/new`}>
@@ -53,7 +53,7 @@ export default async function SiteBlogPage({ params }: Props) {
         {[
           { label: "Tổng bài viết", value: posts.length },
           { label: "Đã publish", value: published },
-          { label: "Draft", value: draft },
+          { label: "Bản nháp", value: draft },
         ].map((s) => (
           <Card key={s.label} className="p-4 text-center">
             <p className="text-2xl font-bold text-slate-800">{s.value}</p>
@@ -90,7 +90,7 @@ export default async function SiteBlogPage({ params }: Props) {
                   <TableHeader>Tiêu đề</TableHeader>
                   <TableHeader>Trạng thái</TableHeader>
                   <TableHeader>Ngày publish</TableHeader>
-                  <TableHeader>Excerpt</TableHeader>
+                  <TableHeader>Mô tả ngắn</TableHeader>
                   <TableHeader></TableHeader>
                 </tr>
               </TableHead>

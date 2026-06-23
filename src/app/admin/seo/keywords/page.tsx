@@ -50,9 +50,9 @@ export default async function KeywordProjectsPage() {
       />
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <StatCard title="Projects" value={projects.length} icon={FolderOpen} />
+        <StatCard title="Dự án" value={projects.length} icon={FolderOpen} />
         <StatCard title="Từ khóa" value={totalKeywords} icon={Search} iconColor="text-blue-600" />
-        <StatCard title="Clusters" value={totalClusters} icon={Layers} iconColor="text-emerald-600" />
+        <StatCard title="Cụm từ khoá" value={totalClusters} icon={Layers} iconColor="text-emerald-600" />
       </div>
 
       {projects.length === 0 ? (

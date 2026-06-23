@@ -62,7 +62,7 @@ export default async function BlogPage() {
   return (
     <div>
       <PageHeader
-        title="Blog & Content"
+        title="Bài viết & nội dung"
         description="Quản lý bài viết và categories cho tất cả sites."
         action={
           <Link href="/admin/blog/new">
@@ -78,7 +78,7 @@ export default async function BlogPage() {
         {[
           { label: "Tổng bài viết", value: postList.length },
           { label: "Đã publish", value: published },
-          { label: "Draft", value: draft },
+          { label: "Bản nháp", value: draft },
         ].map((s) => (
           <Card key={s.label} className="p-4 text-center">
             <p className="text-2xl font-bold text-slate-800">{s.value}</p>
@@ -116,7 +116,7 @@ export default async function BlogPage() {
                   <TableHeader>Site</TableHeader>
                   <TableHeader>Trạng thái</TableHeader>
                   <TableHeader>Ngày publish</TableHeader>
-                  <TableHeader>Excerpt</TableHeader>
+                  <TableHeader>Mô tả ngắn</TableHeader>
                   <TableHeader></TableHeader>
                 </tr>
               </TableHead>

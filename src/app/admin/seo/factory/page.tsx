@@ -45,7 +45,7 @@ export default async function SiteFactoryPage() {
   return (
     <div>
       <PageHeader
-        title="Subdomain Factory"
+        title="Tạo subdomain"
         description="Tạo mạng lưới subdomain tin tức/review/du lịch tiếng Anh từ keyword, địa điểm và tourist entities."
         action={
           <Link href="/admin/seo/keywords">

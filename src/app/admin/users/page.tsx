@@ -28,7 +28,7 @@ export default async function UsersPage() {
   if (!can(session.role, "AGENCY_ADMIN")) {
     return (
       <div>
-        <PageHeader title="Users" description="Quản lý người dùng và phân quyền." />
+        <PageHeader title="Người dùng" description="Quản lý người dùng và phân quyền." />
         <Card className="p-6 text-center">
           <ShieldAlert className="mx-auto h-10 w-10 text-amber-500" />
           <p className="mt-3 text-sm font-medium text-slate-700">Bạn không có quyền truy cập trang này.</p>
@@ -60,7 +60,7 @@ export default async function UsersPage() {
   return (
     <div>
       <PageHeader
-        title="Users"
+        title="Người dùng"
         description="Quản lý tài khoản, phân quyền và truy cập."
         action={
           <Link href="/admin/users/new">
@@ -110,7 +110,7 @@ export default async function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
+                <TableHead>Người dùng</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Sites</TableHead>

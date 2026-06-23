@@ -18,7 +18,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `Redirects — ${tenant.name}` : "Redirects" };
+  return { title: tenant ? `Redirect — ${tenant.name}` : "Redirect" };
 }
 
 export default async function RedirectsPage({ params }: Props) {
@@ -39,7 +39,7 @@ export default async function RedirectsPage({ params }: Props) {
       <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
         <div className="max-w-4xl mx-auto">
           <PageHeader
-            title="Redirect Manager"
+            title="Quản lý redirect"
             description={`Quản lý URL redirects cho ${tenant.primaryDomain ?? tenant.slug}. Áp dụng ngay lập tức.`}
           />
 

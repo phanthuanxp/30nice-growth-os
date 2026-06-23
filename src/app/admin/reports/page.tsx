@@ -134,7 +134,7 @@ export default async function ReportsPage() {
               <TableHead>
                 <tr>
                   <TableHeader>Tháng</TableHeader>
-                  <TableHeader>Leads</TableHeader>
+                  <TableHeader>Lead</TableHeader>
                   <TableHeader>Chốt</TableHeader>
                   <TableHeader>Tỉ lệ</TableHeader>
                 </tr>
@@ -166,7 +166,7 @@ export default async function ReportsPage() {
                 <tr>
                   <TableHeader>Site</TableHeader>
                   <TableHeader>Nội dung</TableHeader>
-                  <TableHeader>Leads</TableHeader>
+                  <TableHeader>Lead</TableHeader>
                   <TableHeader>Chốt</TableHeader>
                 </tr>
               </TableHead>

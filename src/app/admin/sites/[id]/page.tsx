@@ -18,7 +18,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `${tenant.name} — Dashboard` : "Site" };
+  return { title: tenant ? `${tenant.name} — Bảng điều khiển` : "Site" };
 }
 
 export default async function SiteDashboardPage({ params }: Props) {
@@ -43,7 +43,7 @@ export default async function SiteDashboardPage({ params }: Props) {
 
   const stats = [
     {
-      label: "Pages",
+      label: "Trang",
       value: pageList.length,
       sub: `${publishedPages} đã publish`,
       icon: FileText,
@@ -61,7 +61,7 @@ export default async function SiteDashboardPage({ params }: Props) {
       href: `/admin/sites/${id}/blog`,
     },
     {
-      label: "Leads",
+      label: "Lead",
       value: leadList.length,
       sub: `${newLeads} mới`,
       icon: Users,

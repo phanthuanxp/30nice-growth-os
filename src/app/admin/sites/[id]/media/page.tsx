@@ -22,7 +22,7 @@ export default async function SiteMediaPage({ params }: Props) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Media Library"
+        title="Thư viện media"
         description={`Quản lý hình ảnh và file của ${tenant.name}.`}
       />
       <SiteMediaClient tenantId={id} />

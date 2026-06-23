@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getTenantsWithCounts } from "@/server/queries/dashboard";
 import { tenants as demoTenants, pages as demoPages, posts as demoPosts, leads as demoLeads } from "@/server/queries/demo-data";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Bảng điều khiển" };
 
 function MockBarChart({ heights }: { heights: number[] }) {
   return (
@@ -111,14 +111,14 @@ export default async function DashboardPage() {
         style={{ background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)" }}
       >
         <p className="text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">
-          30Nice Growth OS · CMS Upgrade v2
+          30Nice Growth OS · CMS nâng cấp v2
         </p>
         <h2 className="text-2xl font-bold">Trung tâm quản trị CMS & tăng trưởng</h2>
         <p className="text-sm opacity-80 mt-1">
           Quản lý site, page, blog, media, menu, theme, lead, SEO/AI, analytics và automation trong một admin.
           {isDemo && (
             <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">
-              Demo data
+              Dữ liệu demo
             </span>
           )}
         </p>
@@ -126,18 +126,18 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Pages", desc: "Quản lý landing/page", href: "/admin/pages", icon: FileText },
-          { label: "Blog", desc: "Bài viết & SEO content", href: "/admin/blog", icon: BookOpen },
+          { label: "Trang", desc: "Quản lý landing/page", href: "/admin/pages", icon: FileText },
+          { label: "Bài viết", desc: "Bài viết & SEO content", href: "/admin/blog", icon: BookOpen },
           { label: "Media", desc: "Thư viện ảnh/file", href: "/admin/media", icon: Image },
-          { label: "Menus", desc: "Menu điều hướng site", href: "/admin/menus", icon: Menu },
-          { label: "Themes", desc: "Thư viện giao diện", href: "/admin/themes", icon: Palette },
-          { label: "Leads", desc: "Inbox khách hàng", href: "/admin/leads", icon: Users },
+          { label: "Menu", desc: "Menu điều hướng site", href: "/admin/menus", icon: Menu },
+          { label: "Giao diện", desc: "Thư viện giao diện", href: "/admin/themes", icon: Palette },
+          { label: "Lead", desc: "Inbox khách hàng", href: "/admin/leads", icon: Users },
           { label: "SEO + AI", desc: "Tối ưu & viết nội dung", href: "/admin/seo-ai", icon: Search },
-          { label: "Automation", desc: "Jobs, import, báo cáo", href: "/admin/automation", icon: Workflow },
-          { label: "Import", desc: "Nhập dữ liệu website", href: "/admin/import", icon: UploadCloud },
-          { label: "Ads", desc: "Quản lý chiến dịch", href: "/admin/ads", icon: Megaphone },
-          { label: "Analytics", desc: "Traffic & conversion", href: "/admin/analytics", icon: BarChart2 },
-          { label: "Reports", desc: "Báo cáo tăng trưởng", href: "/admin/reports", icon: TrendingUp },
+          { label: "Tự động hoá", desc: "Job, import, báo cáo", href: "/admin/automation", icon: Workflow },
+          { label: "Nhập dữ liệu", desc: "Nhập dữ liệu website", href: "/admin/import", icon: UploadCloud },
+          { label: "Quảng cáo", desc: "Quản lý chiến dịch", href: "/admin/ads", icon: Megaphone },
+          { label: "Phân tích", desc: "Traffic & chuyển đổi", href: "/admin/analytics", icon: BarChart2 },
+          { label: "Báo cáo", desc: "Báo cáo tăng trưởng", href: "/admin/reports", icon: TrendingUp },
         ].map((item) => (
           <Link
             key={item.href}
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart2 className="h-4 w-4 text-indigo-500" />
-                  Traffic Overview
+                  Tổng quan truy cập
                 </CardTitle>
                 <p className="text-xs text-slate-400 mt-0.5">Mock data · 30 ngày qua</p>
               </div>
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-4 w-4 text-indigo-500" />
-              SEO Health
+              Sức khoẻ SEO
             </CardTitle>
             <p className="text-xs text-slate-400 mt-0.5">Mock · Phase 3</p>
           </CardHeader>
@@ -197,8 +197,8 @@ export default async function DashboardPage() {
             <MockDonut percent={74} />
             <div className="w-full space-y-2">
               {[
-                { label: "Title tags", score: 90, color: "#10b981" },
-                { label: "Meta description", score: 65, color: "#f59e0b" },
+                { label: "Thẻ tiêu đề", score: 90, color: "#10b981" },
+                { label: "Mô tả meta", score: 65, color: "#f59e0b" },
                 { label: "Schema markup", score: 45, color: "#ef4444" },
                 { label: "Core Web Vitals", score: 82, color: "#10b981" },
               ].map((item) => (
@@ -220,7 +220,7 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-violet-500" />
-              AI Content Usage
+              Mức dùng AI Content
             </CardTitle>
             <p className="text-xs text-slate-400 mt-0.5">Mock · Phase 3</p>
           </CardHeader>
@@ -245,18 +245,18 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Megaphone className="h-4 w-4 text-amber-500" />
-              Ads / Leads Funnel
+              Phễu quảng cáo / lead
             </CardTitle>
             <p className="text-xs text-slate-400 mt-0.5">Mock · Phase 4</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {[
-                { label: "Impressions", value: 48200, max: 48200, color: "#e0e7ff" },
-                { label: "Clicks", value: 3840, max: 48200, color: "#a5b4fc" },
+                { label: "Lượt hiển thị", value: 48200, max: 48200, color: "#e0e7ff" },
+                { label: "Lượt nhấp", value: 3840, max: 48200, color: "#a5b4fc" },
                 { label: "Leads", value: 426, max: 48200, color: "#6366f1" },
-                { label: "Qualified", value: 89, max: 48200, color: "#4f46e5" },
-                { label: "Won", value: 24, max: 48200, color: "#312e81" },
+                { label: "Đủ điều kiện", value: 89, max: 48200, color: "#4f46e5" },
+                { label: "Chốt được", value: 24, max: 48200, color: "#312e81" },
               ].map((f) => (
                 <div key={f.label} className="flex items-center gap-3">
                   <span className="text-xs text-slate-500 w-24 shrink-0">{f.label}</span>
@@ -297,15 +297,15 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-6 text-center">
                   <div>
                     <p className="text-sm font-semibold text-slate-700">{t._count.pages}</p>
-                    <p className="text-[10px] text-slate-400">pages</p>
+                    <p className="text-[10px] text-slate-400">trang</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-700">{t._count.posts}</p>
-                    <p className="text-[10px] text-slate-400">posts</p>
+                    <p className="text-[10px] text-slate-400">bài</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-emerald-600">{t._count.leads}</p>
-                    <p className="text-[10px] text-slate-400">leads</p>
+                    <p className="text-[10px] text-slate-400">lead</p>
                   </div>
                   <Badge variant={statusVariant(t.status)}>{t.status}</Badge>
                 </div>

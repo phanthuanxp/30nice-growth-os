@@ -27,7 +27,7 @@ export default async function SiteAdminLayout({ children, params }: Props) {
           <nav className="flex items-center gap-1.5 text-sm text-slate-500">
             <span>30Nice CMS</span>
             <span className="text-slate-300">/</span>
-            <span>Sites</span>
+            <span>Site</span>
             <span className="text-slate-300">/</span>
             <span className="font-medium text-slate-800">{tenant.name}</span>
           </nav>

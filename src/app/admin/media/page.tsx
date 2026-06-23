@@ -31,7 +31,7 @@ export default function MediaPage() {
   return (
     <div>
       <PageHeader
-        title="Media Library"
+        title="Thư viện media"
         description="Quản lý tất cả hình ảnh, video, tài liệu của các sites."
         action={
           <Button size="sm">

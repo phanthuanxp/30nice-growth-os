@@ -151,7 +151,7 @@ export default async function KeywordProjectPage({ params }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Từ khóa</TableHead>
-                <TableHead>Volume</TableHead>
+                <TableHead>Lượng tìm kiếm</TableHead>
                 <TableHead>CPC</TableHead>
                 <TableHead>Intent</TableHead>
               </TableRow>

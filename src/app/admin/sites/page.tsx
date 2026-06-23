@@ -59,7 +59,7 @@ export default async function SitesPage() {
   return (
     <div>
       <PageHeader
-        title="Sites / Tenants"
+        title="Site / Tenant"
         description="Quản lý tất cả website và tenant trong hệ thống."
         action={
           <Link href="/admin/sites/new">
@@ -107,9 +107,9 @@ export default async function SitesPage() {
               <tr>
                 <TableHeader>Site</TableHeader>
                 <TableHeader>Domain chính</TableHeader>
-                <TableHeader>Pages</TableHeader>
-                <TableHeader>Posts</TableHeader>
-                <TableHeader>Leads</TableHeader>
+                <TableHeader>Trang</TableHeader>
+                <TableHeader>Bài viết</TableHeader>
+                <TableHeader>Lead</TableHeader>
                 <TableHeader>Trạng thái</TableHeader>
                 <TableHeader></TableHeader>
               </tr>

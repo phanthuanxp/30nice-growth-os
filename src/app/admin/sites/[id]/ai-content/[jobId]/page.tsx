@@ -35,7 +35,7 @@ const JOB_STATUS_LABEL: Record<string, string> = {
   PENDING: "Chờ xử lý",
   BRIEF_READY: "Có brief",
   GENERATING: "Đang tạo...",
-  DRAFT: "Draft xong",
+  DRAFT: "Bản nháp xong",
   REVIEW: "Đang review",
   PUBLISHED: "Đã đăng",
   FAILED: "Lỗi",

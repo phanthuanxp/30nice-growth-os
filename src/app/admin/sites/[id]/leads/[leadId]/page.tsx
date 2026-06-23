@@ -18,7 +18,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { leadId } = await params;
   const lead = await getLeadById(leadId).catch(() => null);
-  return { title: lead ? `${lead.name} — Lead` : "Lead Detail" };
+  return { title: lead ? `${lead.name} — Lead` : "Chi tiết lead" };
 }
 
 const STATUS_LABEL: Record<string, string> = {

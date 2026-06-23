@@ -18,7 +18,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `Pages — ${tenant.name}` : "Pages" };
+  return { title: tenant ? `Trang — ${tenant.name}` : "Trang" };
 }
 
 const statusVariant = (s: string) =>
@@ -34,7 +34,7 @@ export default async function SitePagesPage({ params }: Props) {
   return (
     <div>
       <PageHeader
-        title="Pages"
+        title="Trang"
         description={`Tất cả trang nội dung của ${tenant.name}.`}
         action={
           <Link href={`/admin/sites/${id}/pages/new`}>

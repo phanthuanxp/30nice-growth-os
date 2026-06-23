@@ -16,7 +16,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const tenant = await getTenantById(id).catch(() => null);
-  return { title: tenant ? `Submissions — ${tenant.name}` : "Submissions" };
+  return { title: tenant ? `Dữ liệu form gửi — ${tenant.name}` : "Dữ liệu form gửi" };
 }
 
 function formatPayload(payload: unknown): string {
@@ -68,7 +68,7 @@ export default async function SubmissionsPage({ params }: Props) {
       <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
         <div className="max-w-4xl mx-auto">
           <PageHeader
-            title="Form Submissions"
+            title="Dữ liệu form gửi"
             description={`Tất cả dữ liệu form gửi lên từ ${tenant.primaryDomain ?? tenant.slug}.`}
           />
 
