@@ -10,13 +10,15 @@ import {
   BookOpen,
   Image,
   Navigation,
-  Users,
+  Compass,
   Sparkles,
   Settings,
   ChevronRight,
   Globe,
   Palette,
   FileInput,
+  ArrowRight,
+  Brain,
 } from "lucide-react";
 
 interface SiteSidebarProps {
@@ -33,12 +35,14 @@ export function SiteSidebar({ siteId, siteName, siteSlug, primaryDomain }: SiteS
   const navItems = [
     { label: "Tổng quan", href: base, icon: LayoutDashboard, exact: true },
     { label: "Pages", href: `${base}/pages`, icon: FileText },
-    { label: "Blog", href: `${base}/blog`, icon: BookOpen },
+    { label: "News / Reviews", href: `${base}/blog`, icon: BookOpen },
     { label: "Media", href: `${base}/media`, icon: Image },
     { label: "Menus", href: `${base}/menus`, icon: Navigation },
-    { label: "Leads", href: `${base}/leads`, icon: Users },
-    { label: "Forms & Lead", href: `${base}/forms`, icon: FileInput },
+    { label: "Submissions", href: `${base}/submissions`, icon: FileInput },
     { label: "Giao diện", href: `${base}/theme`, icon: Palette },
+    { label: "AI Content", href: `${base}/ai-content`, icon: Brain },
+    { label: "Subdomain Plan", href: `/admin/seo/factory`, icon: Compass },
+    { label: "Redirects", href: `${base}/redirects`, icon: ArrowRight },
     { label: "SEO AI Engine", href: `${base}/seo`, icon: Sparkles },
     { label: "Cài đặt", href: `${base}/settings`, icon: Settings },
   ];

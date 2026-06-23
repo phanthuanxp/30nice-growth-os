@@ -1,5 +1,21 @@
 import type { Metadata } from "next";
-import { Globe, FileText, BookOpen, Users, TrendingUp, Search, BarChart2, Megaphone } from "lucide-react";
+import Link from "next/link";
+import {
+  Globe,
+  FileText,
+  BookOpen,
+  Users,
+  TrendingUp,
+  Search,
+  BarChart2,
+  Megaphone,
+  Palette,
+  Image,
+  Menu,
+  Workflow,
+  UploadCloud,
+  ArrowRight,
+} from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -95,23 +111,49 @@ export default async function DashboardPage() {
         style={{ background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)" }}
       >
         <p className="text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">
-          30Nice Growth OS
+          30Nice Growth OS · CMS Upgrade v2
         </p>
-        <h2 className="text-2xl font-bold">Chào mừng trở lại!</h2>
+        <h2 className="text-2xl font-bold">Trung tâm quản trị CMS & tăng trưởng</h2>
         <p className="text-sm opacity-80 mt-1">
-          Hôm nay là{" "}
-          {new Date().toLocaleDateString("vi-VN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          Quản lý site, page, blog, media, menu, theme, lead, SEO/AI, analytics và automation trong một admin.
           {isDemo && (
             <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">
               Demo data
             </span>
           )}
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Pages", desc: "Quản lý landing/page", href: "/admin/pages", icon: FileText },
+          { label: "Blog", desc: "Bài viết & SEO content", href: "/admin/blog", icon: BookOpen },
+          { label: "Media", desc: "Thư viện ảnh/file", href: "/admin/media", icon: Image },
+          { label: "Menus", desc: "Menu điều hướng site", href: "/admin/menus", icon: Menu },
+          { label: "Themes", desc: "Thư viện giao diện", href: "/admin/themes", icon: Palette },
+          { label: "Leads", desc: "Inbox khách hàng", href: "/admin/leads", icon: Users },
+          { label: "SEO + AI", desc: "Tối ưu & viết nội dung", href: "/admin/seo-ai", icon: Search },
+          { label: "Automation", desc: "Jobs, import, báo cáo", href: "/admin/automation", icon: Workflow },
+          { label: "Import", desc: "Nhập dữ liệu website", href: "/admin/import", icon: UploadCloud },
+          { label: "Ads", desc: "Quản lý chiến dịch", href: "/admin/ads", icon: Megaphone },
+          { label: "Analytics", desc: "Traffic & conversion", href: "/admin/analytics", icon: BarChart2 },
+          { label: "Reports", desc: "Báo cáo tăng trưởng", href: "/admin/reports", icon: TrendingUp },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
+                <item.icon className="h-5 w-5" />
+              </div>
+              <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+            </div>
+            <p className="mt-3 text-sm font-semibold text-slate-900">{item.label}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{item.desc}</p>
+          </Link>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -118,7 +118,7 @@ function DnsGuide({ serverIp, open, onToggle }: { serverIp: string; open: boolea
             </Step>
 
             <Step n={4} title="Thêm domain và bấm Xác thực DNS">
-              Sau khi DNS cập nhật, nhập domain vào ô bên dưới → <strong>Thêm</strong> → bấm <strong>Xác thực DNS</strong>. Hệ thống tự cấp SSL (HTTPS) miễn phí qua Let's Encrypt.
+              Sau khi DNS cập nhật, nhập domain vào ô bên dưới → <strong>Thêm</strong> → bấm <strong>Xác thực DNS</strong>. Hệ thống tự cấp SSL (HTTPS) miễn phí qua Let&apos;s Encrypt.
             </Step>
           </div>
 
@@ -290,7 +290,7 @@ export function DomainsClient({ tenantId, domains: init, serverIp }: Props) {
                   {provisioning === d.id && (
                     <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
                       <RefreshCw className="h-3 w-3 animate-spin" />
-                      Đang cấp chứng chỉ SSL Let's Encrypt... (1–2 phút)
+                      Đang cấp chứng chỉ SSL Let&apos;s Encrypt... (1–2 phút)
                     </p>
                   )}
                 </div>

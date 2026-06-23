@@ -3,6 +3,7 @@
     "allow": [
       "Bash(npm run typecheck)",
       "Bash(npm run lint)",
+      "Bash(tar tf *)",
       "Bash(pm2 logs *)",
       "Bash(pm2 status *)",
       "Bash(pm2 list *)",

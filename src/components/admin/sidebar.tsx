@@ -6,13 +6,24 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Globe,
-  Users,
+  Compass,
   Settings,
   BarChart2,
   FileBarChart,
   ChevronRight,
   Brain,
   Palette,
+  FileText,
+  BookOpen,
+  Image,
+  Menu,
+  Search,
+  Megaphone,
+  Workflow,
+  UploadCloud,
+  Calendar,
+  UserCog,
+  ShieldCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -30,22 +41,45 @@ interface NavGroup {
 const NAV: NavGroup[] = [
   {
     items: [
-      { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Travel CMS Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     ],
   },
   {
-    title: "Sites",
+    title: "Travel News CMS",
     items: [
-      { label: "Tất cả Sites", href: "/admin/sites", icon: Globe },
-      { label: "Leads (tổng)", href: "/admin/leads", icon: Users, badge: "New" },
-      { label: "Theme Library", href: "/admin/themes", icon: Palette },
+      { label: "Sites / Subdomains", href: "/admin/sites", icon: Globe },
+      { label: "Pages", href: "/admin/pages", icon: FileText },
+      { label: "News / Reviews", href: "/admin/blog", icon: BookOpen },
+      { label: "Media Library", href: "/admin/media", icon: Image },
+      { label: "Menus", href: "/admin/menus", icon: Menu },
+      { label: "Theme Library", href: "/admin/themes", icon: Palette, badge: "CMS" },
+    ],
+  },
+  {
+    title: "AI Content Engine",
+    items: [
+      { label: "SEO + AI Writer", href: "/admin/seo-ai", icon: Search },
+      { label: "Keyword Intelligence", href: "/admin/seo/keywords", icon: Brain, badge: "Core" },
+      { label: "Subdomain Factory", href: "/admin/seo/factory", icon: Compass, badge: "Core" },
       { label: "Analytics", href: "/admin/analytics", icon: BarChart2 },
+      { label: "Ads", href: "/admin/ads", icon: Megaphone },
+      { label: "Publishing Calendar", href: "/admin/publishing", icon: Calendar },
+      { label: "Publishing Jobs", href: "/admin/automation", icon: Workflow },
+      { label: "Source Import / Crawl", href: "/admin/import", icon: UploadCloud },
       { label: "Reports", href: "/admin/reports", icon: FileBarChart },
+    ],
+  },
+  {
+    title: "Legacy / Paused",
+    items: [
+      { label: "Leads Center", href: "/admin/leads", icon: UserCog, badge: "Paused" },
     ],
   },
   {
     title: "System",
     items: [
+      { label: "Users", href: "/admin/users", icon: UserCog },
+      { label: "Audit Log", href: "/admin/settings/audit", icon: ShieldCheck },
       { label: "AI Providers", href: "/admin/settings/ai", icon: Brain },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
@@ -132,7 +166,7 @@ export function Sidebar() {
         style={{ borderTop: "1px solid var(--sidebar-border)" }}
       >
         <p className="text-[10px] text-slate-600 text-center">
-          30Nice Growth OS · MVP v0.1
+          30Nice · AI Travel News CMS
         </p>
       </div>
     </aside>

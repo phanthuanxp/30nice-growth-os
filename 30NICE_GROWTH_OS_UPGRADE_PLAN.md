@@ -678,3 +678,69 @@ Deliverables:
 - Do not convert this into many microservices yet.
 - Do not prioritize Ads/GSC before Core/Auth/CMS/Lead foundations are stable.
 - The system should become a product, not just a collection of pages.
+
+---
+
+## 12. Product Direction Update — AI Travel News CMS (2026-06-22)
+
+Owner direction: `30nice-growth-os` / `admin.30nice.vn` should focus on English-language travel, news, and review sites for foreign visitors. Lead generation, forms, and booking flows are paused and should not receive near-term upgrade effort.
+
+### 12.1 New Core Product Loop
+
+```text
+Root domain + niche
+→ AI keyword research
+→ topic/location/tourist-entity clustering
+→ subdomain suggestions, e.g. halongbay.domain.com
+→ SEO content plan per subdomain
+→ source/crawl article discovery
+→ AI rewrite/transform into original English content
+→ SEO optimization
+→ scheduled publishing
+→ sitemap/indexing/analytics feedback
+```
+
+### 12.2 Priority Modules
+
+1. **Subdomain Factory**
+   - Generate subdomain ideas from keywords, locations, destinations, and travel entities.
+   - Score each idea by SEO opportunity, topical depth, and subdomain quality.
+   - Example: `halong bay travel guide` → `halongbay.domain.com`.
+
+2. **Keyword Intelligence**
+   - Generate seed keywords, expand them, classify intent, and cluster by destination/topic.
+   - Cluster types: destination, hotel/review, itinerary, transport, food/nightlife, seasonal, comparison.
+
+3. **Content Source / Crawl Engine**
+   - Manage source sites, sitemaps, RSS/manual URL imports, crawl queues, dedupe hashes, and extracted article text.
+
+4. **AI Rewrite + SEO Optimizer**
+   - Extract facts/entities, create a new outline, rewrite in English, add helpful travel sections, optimize title/meta/schema/internal links.
+
+5. **Publishing Scheduler**
+   - Plan and schedule pillar/supporting articles per subdomain.
+
+### 12.3 Paused / Legacy Modules
+
+Do not prioritize upgrades for:
+
+- Lead Center
+- Forms
+- Booking
+- CRM/follow-up automations
+- Lead exports/notifications
+
+Keep these modules only as legacy/optional until the travel content engine is stable.
+
+### 12.4 Safe Schema Direction
+
+Avoid destructive migrations until baseline is clean. Proposed future models:
+
+```text
+SubdomainPlan(rootDomain, subdomain, niche, primaryLocation, language, seoScore, opportunityScore, status)
+ContentSource(name, baseUrl, sourceType, language, niche, crawlStatus)
+SourceArticle(sourceId, url, title, extractedText, canonicalUrl, contentHash, status)
+ContentRewriteJob(sourceArticleId, tenantId, targetKeywordId, status, generatedOutline, generatedContent, seoTitle, metaDescription, qualityScore)
+ContentPlan(subdomainPlanId/tenantId, topic, goal, status)
+ContentPlanItem(contentPlanId, keyword, title, intent, articleType, priority, scheduledAt, status)
+```

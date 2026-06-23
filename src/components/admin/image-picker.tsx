@@ -48,7 +48,9 @@ export function ImagePicker({
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setUrl(value); }, [value]);
+  useEffect(() => {
+    queueMicrotask(() => setUrl(value));
+  }, [value]);
 
   const upload = useCallback(async (file: File) => {
     setError("");

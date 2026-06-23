@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Phone } from "lucide-react";
+import Link from "next/link";
+import { Users, Phone, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LeadStatusForm } from "@/components/admin/lead-status-form";
@@ -97,7 +98,10 @@ export function LeadsTable({ tenantId, leads }: { tenantId: string; leads: LeadR
                     {l.name[0]?.toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-800 truncate">{l.name}</p>
+                    <Link href={`/admin/sites/${tenantId}/leads/${l.id}`} className="font-medium text-slate-800 truncate hover:text-indigo-600 flex items-center gap-1">
+                      {l.name}
+                      <ExternalLink className="h-3 w-3 opacity-40" />
+                    </Link>
                     {l.phone && (
                       <a href={`tel:${l.phone.replace(/\s/g, "")}`} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                         <Phone className="h-3 w-3" />

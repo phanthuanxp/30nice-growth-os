@@ -43,6 +43,7 @@ model User {
   organizationMembers OrganizationMember[]
   tenantMembers       TenantMember[]
   auditLogs           AuditLog[]
+  keywordProjects     KeywordProject[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 }
@@ -109,6 +110,13 @@ model Tenant {
   automationJobs AutomationJob[]
   analyticsEvents AnalyticsEvent[]
   auditLogs      AuditLog[]
+  keywordClusters KeywordCluster[]
+  aiContentJobs  AiContentJob[]
+  subdomainPlans SubdomainPlan[]
+  contentPlans   ContentPlan[]
+  contentSources ContentSource[]
+  sourceArticles SourceArticle[]
+  crawlJobs      CrawlJob[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -232,6 +240,9 @@ model Post {
   schemaData     String?
   robotsMeta     String?
   canonicalUrl   String?
+  qualityScore   Int?
+  seoScore       Int?
+  qualityReport  Json?
   publishedAt    DateTime?
   tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category       Category?     @relation(fields: [categoryId], references: [id])
@@ -535,4 +546,362 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([tenantId, createdAt])
   @@index([action])
+}
+
+// ---------- SEO Keyword Engine (Phase 2) ----------
+
+enum SeoIntent {
+  INFORMATIONAL
+  COMMERCIAL
+  TRANSACTIONAL
+  NAVIGATIONAL
+  UNKNOWN
+}
+
+enum KeywordProjectStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model KeywordProject {
+  id           String                @id @default(cuid())
+  name         String
+  niche        String?
+  description  String?
+  language     String                @default("vi")
+  country      String                @default("VN")
+  status       KeywordProjectStatus  @default(DRAFT)
+  ownerId      String?
+  owner        User?                 @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  keywords     Keyword[]
+  clusters     KeywordCluster[]
+  subdomainPlans SubdomainPlan[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+model Keyword {
+  id              String                  @id @default(cuid())
+  projectId       String
+  project         KeywordProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  text            String
+  normalizedText  String
+  searchVolume    Int?
+  difficulty      Int?
+  cpc             Decimal?                @db.Decimal(10, 2)
+  competition     Float?
+  intent          SeoIntent               @default(UNKNOWN)
+  language        String                  @default("vi")
+  country         String                  @default("VN")
+  source          String?
+  embedding       Json?
+  metadata        Json?
+  clusterMembers  KeywordClusterMember[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([projectId, normalizedText])
+  @@index([projectId, intent])
+  @@index([projectId, searchVolume])
+}
+
+model KeywordCluster {
+  id                String                  @id @default(cuid())
+  projectId         String
+  project           KeywordProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name              String
+  headKeyword       String?
+  intent            SeoIntent               @default(UNKNOWN)
+  totalVolume       Int                     @default(0)
+  avgDifficulty     Int?
+  suggestedSlug     String?
+  suggestedDomain   String?
+  assignedTenantId  String?
+  assignedTenant    Tenant?                 @relation(fields: [assignedTenantId], references: [id], onDelete: SetNull)
+  members           KeywordClusterMember[]
+  notes             String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([projectId])
+  @@index([assignedTenantId])
+}
+
+model KeywordClusterMember {
+  id          String          @id @default(cuid())
+  clusterId   String
+  cluster     KeywordCluster  @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  keywordId   String
+  keyword     Keyword         @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  isPrimary   Boolean         @default(false)
+  similarity  Float?
+  createdAt   DateTime        @default(now())
+
+  @@unique([clusterId, keywordId])
+  @@index([keywordId])
+}
+
+
+// ---------- Subdomain Factory / Travel Content Planning (Phase 2A) ----------
+
+enum SubdomainPlanStatus {
+  DRAFT
+  APPROVED
+  CREATED
+  REJECTED
+}
+
+enum ContentPlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum ContentPlanItemStatus {
+  PLANNED
+  DRAFTING
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  SKIPPED
+}
+
+model SubdomainPlan {
+  id               String              @id @default(cuid())
+  rootDomain       String
+  subdomain        String
+  fullDomain       String
+  keyword          String
+  niche            String?
+  location         String?
+  intent           String?
+  language         String              @default("en")
+  seoScore         Int                 @default(0)
+  opportunityScore Int                 @default(0)
+  rationale        String?
+  status           SubdomainPlanStatus @default(DRAFT)
+  keywordProjectId String?
+  keywordProject   KeywordProject?     @relation(fields: [keywordProjectId], references: [id], onDelete: SetNull)
+  tenantId         String?
+  tenant           Tenant?             @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  contentPlans     ContentPlan[]
+  createdById      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([rootDomain, subdomain])
+  @@index([status])
+  @@index([fullDomain])
+  @@index([keywordProjectId])
+  @@index([tenantId])
+}
+
+model ContentPlan {
+  id              String            @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subdomainPlanId String?
+  subdomainPlan   SubdomainPlan?    @relation(fields: [subdomainPlanId], references: [id], onDelete: Cascade)
+  title           String
+  goal            String?
+  language        String            @default("en")
+  status          ContentPlanStatus @default(DRAFT)
+  items           ContentPlanItem[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([tenantId])
+  @@index([subdomainPlanId])
+  @@index([status])
+}
+
+model ContentPlanItem {
+  id            String                @id @default(cuid())
+  contentPlanId String
+  contentPlan   ContentPlan           @relation(fields: [contentPlanId], references: [id], onDelete: Cascade)
+  keyword       String
+  title         String
+  intent        String?
+  articleType   String                @default("travel_guide")
+  priority      Int                   @default(50)
+  status        ContentPlanItemStatus @default(PLANNED)
+  scheduledAt   DateTime?
+  postId        String?
+  notes         String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([contentPlanId])
+  @@index([status])
+  @@index([priority])
+}
+
+
+// ---------- Content Source / Crawl Engine (Phase 3A) ----------
+
+enum ContentSourceType {
+  WEBSITE
+  SITEMAP
+  RSS
+  MANUAL_URL_LIST
+}
+
+enum CrawlStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum SourceArticleStatus {
+  DISCOVERED
+  EXTRACTED
+  READY_FOR_REWRITE
+  REWRITE_QUEUED
+  DRAFT_CREATED
+  SCHEDULED
+  PUBLISHED
+  DUPLICATE
+  FAILED
+}
+
+model ContentSource {
+  id          String            @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  baseUrl     String
+  sourceType  ContentSourceType @default(WEBSITE)
+  language    String            @default("en")
+  niche       String?
+  active      Boolean           @default(true)
+  crawlStatus CrawlStatus       @default(PENDING)
+  lastCrawledAt DateTime?
+  articles    SourceArticle[]
+  crawlJobs   CrawlJob[]
+  createdById String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([tenantId])
+  @@index([sourceType])
+  @@index([crawlStatus])
+  @@unique([tenantId, baseUrl])
+}
+
+model SourceArticle {
+  id             String              @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId       String?
+  source         ContentSource?      @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  url            String
+  title          String?
+  canonicalUrl   String?
+  rawHtml        String?
+  extractedText  String?
+  excerpt        String?
+  author         String?
+  publishedAt    DateTime?
+  imageUrl       String?
+  contentHash    String?
+  language       String             @default("en")
+  status         SourceArticleStatus @default(DISCOVERED)
+  targetKeyword  String?
+  subdomainPlanId String?
+  draftPostId    String?
+  contentPlanItemId String?
+  scheduledPublishAt DateTime?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  metadata       Json?
+  errorMessage   String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([url])
+  @@index([tenantId])
+  @@index([sourceId])
+  @@index([status])
+  @@index([contentHash])
+  @@index([draftPostId])
+  @@index([contentPlanItemId])
+}
+
+model CrawlJob {
+  id          String      @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId    String?
+  source      ContentSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  status      CrawlStatus @default(PENDING)
+  input       Json?
+  discovered  Int         @default(0)
+  extracted   Int         @default(0)
+  failed      Int         @default(0)
+  errorMessage String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([tenantId])
+  @@index([sourceId])
+  @@index([status])
+}
+
+// ---------- AI Content Engine (Phase 5) ----------
+
+enum AiContentJobStatus {
+  PENDING
+  BRIEF_READY
+  GENERATING
+  DRAFT
+  REVIEW
+  PUBLISHED
+  FAILED
+}
+
+enum AiContentType {
+  BLOG_POST
+  LANDING_PAGE
+  SERVICE_PAGE
+  FAQ_PAGE
+  REVIEW_PAGE
+  COMPARISON_PAGE
+}
+
+model AiContentJob {
+  id            String               @id @default(cuid())
+  tenantId      String
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  targetKeyword String?
+  keywords      String[]
+  contentType   AiContentType        @default(BLOG_POST)
+  targetLength  Int                  @default(1000)
+  language      String               @default("vi")
+  status        AiContentJobStatus   @default(PENDING)
+  brief         Json?
+  draftHtml     String?
+  draftText     String?
+  seoTitle      String?
+  seoDescription String?
+  pageId        String?
+  postId        String?
+  errorMessage  String?
+  createdById   String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@index([createdById])
 }

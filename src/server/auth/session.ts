@@ -15,8 +15,11 @@ export interface SessionUser {
   role: Role;
 }
 
-const SECRET =
-  process.env.SESSION_SECRET ?? "30nice-dev-secret-key-min-32-chars!!";
+const RAW_SECRET = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === "production" && !RAW_SECRET) {
+  throw new Error("SESSION_SECRET environment variable must be set in production");
+}
+const SECRET = RAW_SECRET ?? "30nice-dev-secret-key-min-32-chars!!";
 const COOKIE = "30nice_session";
 const MAX_AGE = 60 * 60 * 24 * 7;
 

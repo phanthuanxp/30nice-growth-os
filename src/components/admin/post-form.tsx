@@ -119,7 +119,9 @@ export function PostForm({
   }, [state.success, router, returnTo]);
 
   useEffect(() => {
-    if (catState.success && catState.id) setShowCatForm(false);
+    if (catState.success && catState.id) {
+      queueMicrotask(() => setShowCatForm(false));
+    }
   }, [catState.success, catState.id]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

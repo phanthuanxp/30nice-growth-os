@@ -1,0 +1,4 @@
+-- Content Quality & SEO Scoring (Phase 6A)
+ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "qualityScore" INTEGER;
+ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "seoScore" INTEGER;
+ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "qualityReport" JSONB;

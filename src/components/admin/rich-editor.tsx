@@ -80,7 +80,11 @@ function ImageInsertModal({
     finally { setLoadingLib(false); }
   }, [tenantId]);
 
-  useEffect(() => { if (tab === "library") loadLibrary(); }, [tab, loadLibrary]);
+  useEffect(() => {
+    if (tab === "library") {
+      queueMicrotask(() => { void loadLibrary(); });
+    }
+  }, [tab, loadLibrary]);
 
   const upload = async (file: File) => {
     setUploadError("");

@@ -38,6 +38,24 @@ export async function getTenantByDomain(host: string) {
   return prisma.tenant.findFirst({ where: { primaryDomain: host } });
 }
 
+/**
+ * Resolve a tenant from a subdomain label (the part before the apex/primary host).
+ * Matches by tenant slug, or by any Domain row whose host starts with the subdomain.
+ * Used by the wildcard subdomain pattern: <subdomain>.<PRIMARY_HOST>.
+ */
+export async function getTenantBySubdomain(subdomain: string) {
+  const sub = subdomain.toLowerCase();
+  if (!sub) return null;
+  return prisma.tenant.findFirst({
+    where: {
+      OR: [
+        { slug: sub },
+        { domains: { some: { host: { startsWith: `${sub}.` } } } },
+      ],
+    },
+  });
+}
+
 export type CreateTenantInput = {
   name: string;
   slug: string;

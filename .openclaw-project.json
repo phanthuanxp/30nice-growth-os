@@ -1,0 +1,28 @@
+{
+  "schema": "openclaw.project-marker.v1",
+  "project_id": "30nice-growth-os",
+  "canonical_name": "30nice Growth OS CMS",
+  "type": "nextjs-prisma-cms-claudecli-project",
+  "owner_label": "sếp Thuần",
+  "canonical_path": "/root/.openclaw/workspace/projects/30nice-growth-os",
+  "role": "Separate CMS product being built with ClaudeCLI; not the WordPress backend for cms.30nice.vn.",
+  "safe_paths": [
+    "/root/.openclaw/workspace/projects/30nice-growth-os"
+  ],
+  "must_not_confuse_with": [
+    {
+      "project_id": "cms.30nice.vn",
+      "path": "/var/www/cms.30nice.vn",
+      "reason": "WordPress source installed on VPS, central CMS/API backend connected to Vercel front-end interfaces."
+    }
+  ],
+  "pre_work_checks": [
+    "Confirm the user explicitly means 30nice-growth-os, Growth OS, or the ClaudeCLI-built CMS.",
+    "Run git status from /root/.openclaw/workspace/projects/30nice-growth-os before edits.",
+    "Do not patch, deploy, or overwrite cms.30nice.vn WordPress files from this repo."
+  ],
+  "created_at": "2026-06-17T06:26:00+02:00",
+  "primary_domain": "https://admin.30nice.vn",
+  "domain_calling_rule": "When sếp Thuần names admin.30nice.vn, treat it as project 30nice-growth-os.",
+  "updated_at": "2026-06-17T06:43:00+02:00"
+}

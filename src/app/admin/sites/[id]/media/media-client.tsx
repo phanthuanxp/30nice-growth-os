@@ -60,7 +60,9 @@ export function SiteMediaClient({ tenantId }: { tenantId: string }) {
     }
   }, [tenantId]);
 
-  useEffect(() => { fetchAssets(); }, [fetchAssets]);
+  useEffect(() => {
+    queueMicrotask(() => { void fetchAssets(); });
+  }, [fetchAssets]);
 
   const upload = useCallback(async (files: FileList | File[]) => {
     setUploadError("");
