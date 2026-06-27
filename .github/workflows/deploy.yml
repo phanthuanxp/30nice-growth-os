@@ -28,7 +28,8 @@ jobs:
 
             echo "=== [1/5] Pull latest code ==="
             cd "$SOURCE_DIR"
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
 
             echo "=== [2/5] Sync source to production ==="
             rsync -av --delete \
