@@ -1,0 +1,56 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy 30Nice Growth OS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 300s
+          script: |
+            set -e
+
+            SOURCE_DIR=/root/.openclaw/workspace/projects/30nice-growth-os
+            PROD_DIR=/var/www/30nice-growth-os
+            APP_NAME=30nice-growth-os
+
+            echo "=== [1/5] Pull latest code ==="
+            cd "$SOURCE_DIR"
+            git pull origin main
+
+            echo "=== [2/5] Sync source to production ==="
+            rsync -av --delete \
+              --exclude='.git' \
+              --exclude='node_modules' \
+              --exclude='.next' \
+              --exclude='.env' \
+              --exclude='.env.local' \
+              --exclude='.deploy-backups' \
+              --exclude='30nice-upgrade-v2-full.tar.gz' \
+              "$SOURCE_DIR/" "$PROD_DIR/"
+
+            echo "=== [3/5] Install dependencies ==="
+            cd "$PROD_DIR"
+            npm ci --include=dev
+
+            echo "=== [4/5] Build ==="
+            npx prisma generate
+            npm run build
+
+            echo "=== [5/5] Restart PM2 ==="
+            pm2 reload "$APP_NAME" --update-env
+            pm2 save
+
+            echo "=== DEPLOY DONE ==="
+            pm2 status "$APP_NAME"
