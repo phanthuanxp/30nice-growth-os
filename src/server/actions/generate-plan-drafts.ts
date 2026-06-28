@@ -37,9 +37,11 @@ async function generateForItem(itemId: string, userId: string) {
   return post.id;
 }
 
-export async function generateDraftForContentPlanItemAction(itemId: string, tenantId?: string): Promise<void> {
+export async function generateDraftForContentPlanItemAction(itemId: string, _formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session || !ensureEditor(session.role)) return;
+  const item = await prisma.contentPlanItem.findUnique({ where: { id: itemId }, select: { contentPlan: { select: { tenantId: true } } } }).catch(() => null);
+  const tenantId = item?.contentPlan?.tenantId;
   await generateForItem(itemId, session.id).catch(() => null);
   revalidatePath("/admin/publishing");
   if (tenantId) revalidatePath(`/admin/sites/${tenantId}/content-plan`);
