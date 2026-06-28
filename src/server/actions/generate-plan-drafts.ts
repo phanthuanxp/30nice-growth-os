@@ -7,6 +7,7 @@ import { getSession } from "@/server/auth/session";
 import { can } from "@/server/permissions";
 import { writeAuditLog } from "@/server/audit/log";
 import { scorePostDraft } from "@/server/content/quality-score";
+
 import { generateDraftFromContentPlanItem } from "@/server/content/plan-draft";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -36,11 +37,12 @@ async function generateForItem(itemId: string, userId: string) {
   return post.id;
 }
 
-export async function generateDraftForContentPlanItemAction(itemId: string): Promise<void> {
+export async function generateDraftForContentPlanItemAction(itemId: string, tenantId?: string): Promise<void> {
   const session = await getSession();
   if (!session || !ensureEditor(session.role)) return;
   await generateForItem(itemId, session.id).catch(() => null);
   revalidatePath("/admin/publishing");
+  if (tenantId) revalidatePath(`/admin/sites/${tenantId}/content-plan`);
 }
 
 export async function generateMissingDraftsAction(_prev: ActionResult, form: FormData): Promise<ActionResult> {
@@ -55,6 +57,36 @@ export async function generateMissingDraftsAction(_prev: ActionResult, form: For
   for (const item of items) {
     try { await generateForItem(item.id, session.id); generated++; } catch { failed++; }
   }
+  if (tenantId) revalidatePath(`/admin/sites/${tenantId}/content-plan`);
   revalidatePath("/admin/publishing");
   return failed > 0 ? { ok: generated > 0, error: `Generated ${generated}, failed ${failed}` } : { ok: true };
+}
+
+export async function addContentPlanItemAction(contentPlanId: string, tenantId: string, _prev: ActionResult, form: FormData): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Chưa đăng nhập" };
+  if (!ensureEditor(session.role)) return { ok: false, error: "Không đủ quyền" };
+  const title = form.get("title")?.toString().trim();
+  const keyword = form.get("keyword")?.toString().trim();
+  if (!title || !keyword) return { ok: false, error: "Tiêu đề và keyword là bắt buộc" };
+  const intent = form.get("intent")?.toString() || "INFORMATIONAL";
+  const articleType = form.get("articleType")?.toString() || "travel_guide";
+  const priority = Math.min(100, Math.max(0, Number(form.get("priority") || 50)));
+  await prisma.contentPlanItem.create({ data: { contentPlanId, title, keyword, intent, articleType, priority } });
+  await writeAuditLog({ userId: session.id, tenantId, action: "content_plan.add_item", resource: "ContentPlanItem", metadata: { contentPlanId, title } });
+  revalidatePath(`/admin/sites/${tenantId}/content-plan`);
+  return { ok: true };
+}
+
+export async function createContentPlanAction(tenantId: string, _prev: ActionResult, form: FormData): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Chưa đăng nhập" };
+  if (!ensureEditor(session.role)) return { ok: false, error: "Không đủ quyền" };
+  const title = form.get("title")?.toString().trim() || "Content Plan";
+  const existing = await prisma.contentPlan.findFirst({ where: { tenantId } });
+  if (existing) return { ok: false, error: "Site này đã có Content Plan" };
+  await prisma.contentPlan.create({ data: { tenantId, title, status: "ACTIVE" } });
+  await writeAuditLog({ userId: session.id, tenantId, action: "content_plan.create", resource: "ContentPlan", metadata: { title } });
+  revalidatePath(`/admin/sites/${tenantId}/content-plan`);
+  return { ok: true };
 }

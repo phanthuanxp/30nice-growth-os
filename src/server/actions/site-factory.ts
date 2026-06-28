@@ -82,6 +82,42 @@ export async function createSiteFromClusterAction(
       },
     });
 
+    // Create ContentPlan with starter items from cluster keywords
+    const headKw = cluster.headKeyword || nameInput;
+    const memberKeywords = await prisma.keywordClusterMember.findMany({
+      where: { clusterId },
+      include: { keyword: { select: { text: true, intent: true } } },
+      orderBy: { isPrimary: "desc" },
+      take: 10,
+    });
+    const starterTitles = [
+      `${headKw}: Complete Travel Guide`,
+      `Best Time to Visit ${headKw}`,
+      `How to Get to ${headKw}`,
+      `Best Things to Do in ${headKw}`,
+      `${headKw} Itinerary and Travel Tips`,
+      `${headKw} FAQ for First-Time Visitors`,
+    ];
+    await prisma.contentPlan.create({
+      data: {
+        tenantId: tenant.id,
+        title: `${nameInput} Content Plan`,
+        goal: `Build topical authority for ${domain}`,
+        status: "ACTIVE",
+        items: {
+          create: starterTitles.map((title, i) => {
+            const memberKw = memberKeywords[i]?.keyword;
+            return {
+              title,
+              keyword: memberKw?.text || headKw,
+              intent: memberKw?.intent || "INFORMATIONAL",
+              priority: 100 - i * 10,
+            };
+          }),
+        },
+      },
+    });
+
     await writeAuditLog({
       userId: session.id,
       action: "site_factory.create_site",
