@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Map } from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,7 +57,7 @@ export default async function ContentPlanPage({ params }: Props) {
       <div className="space-y-6">
         <PageHeader title="Content Plan" description={`Kế hoạch nội dung cho ${tenant.name}.`} />
         <Card className="p-8 text-center">
-          <Map className="h-10 w-10 mx-auto text-slate-300 mb-3" />
+          <MapIcon className="h-10 w-10 mx-auto text-slate-300 mb-3" />
           <p className="text-sm font-medium text-slate-700 mb-1">Site này chưa có Content Plan</p>
           <p className="text-xs text-slate-400 mb-6">
             Content Plan được tạo tự động khi tạo site từ Subdomain Factory.
