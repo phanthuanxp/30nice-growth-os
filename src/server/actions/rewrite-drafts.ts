@@ -23,20 +23,26 @@ async function uniqueSlug(tenantId: string, base: string) {
   return `${base}-${Date.now()}`;
 }
 
+// Internal helper used by both server actions and the cron pipeline
+export async function rewriteArticleToPost(articleId: string, userId: string): Promise<string | null> {
+  const article = await prisma.sourceArticle.findUnique({ where: { id: articleId }, include: { tenant: true } });
+  if (!article?.tenantId || !article.extractedText) return null;
+  await prisma.sourceArticle.update({ where: { id: articleId }, data: { status: "REWRITE_QUEUED" } });
+  const draft = await rewriteSourceArticle({ sourceTitle: article.title, sourceText: article.extractedText, targetKeyword: article.targetKeyword, siteName: article.tenant?.name, canonicalUrl: article.canonicalUrl });
+  const slug = await uniqueSlug(article.tenantId, draft.slug);
+  const qualityReport = scorePostDraft({ title: draft.title, content: draft.contentHtml, excerpt: draft.excerpt, seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, schemaData: draft.schemaData, keyword: article.targetKeyword });
+  const post = await prisma.post.create({ data: { tenantId: article.tenantId, title: draft.title, slug, excerpt: draft.excerpt, content: draft.contentHtml, featuredImage: article.imageUrl || undefined, status: "DRAFT", seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, ogTitle: draft.seoTitle, ogDescription: draft.seoDescription, ogImage: article.imageUrl || undefined, twitterCard: "summary_large_image", schemaType: "Article", schemaData: draft.schemaData, canonicalUrl: article.canonicalUrl || undefined, qualityScore: qualityReport.qualityScore, seoScore: qualityReport.seoScore, qualityReport } });
+  const contentPlanItemId = await attachDraftToContentPlanItem({ tenantId: article.tenantId, sourceArticleId: articleId, postId: post.id, keyword: article.targetKeyword, title: article.title });
+  await prisma.sourceArticle.update({ where: { id: articleId }, data: { status: "DRAFT_CREATED", draftPostId: post.id, contentPlanItemId, metadata: { rewrittenAt: new Date().toISOString(), draftPostId: post.id } } });
+  await writeAuditLog({ userId, tenantId: article.tenantId, action: "source_article.rewrite_to_draft", resource: "Post", resourceId: post.id, metadata: { sourceArticleId: articleId } });
+  return post.id;
+}
+
 export async function rewriteSourceArticleToDraftAction(id: string): Promise<void> {
   const session = await getSession();
   if (!session || !ensureEditor(session.role)) return;
-  const article = await prisma.sourceArticle.findUnique({ where: { id }, include: { tenant: true } });
-  if (!article?.tenantId || !article.extractedText) return;
   try {
-    await prisma.sourceArticle.update({ where: { id }, data: { status: "REWRITE_QUEUED" } });
-    const draft = await rewriteSourceArticle({ sourceTitle: article.title, sourceText: article.extractedText, targetKeyword: article.targetKeyword, siteName: article.tenant?.name, canonicalUrl: article.canonicalUrl });
-    const slug = await uniqueSlug(article.tenantId, draft.slug);
-    const qualityReport = scorePostDraft({ title: draft.title, content: draft.contentHtml, excerpt: draft.excerpt, seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, schemaData: draft.schemaData, keyword: article.targetKeyword });
-    const post = await prisma.post.create({ data: { tenantId: article.tenantId, title: draft.title, slug, excerpt: draft.excerpt, content: draft.contentHtml, featuredImage: article.imageUrl || undefined, status: "DRAFT", seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, ogTitle: draft.seoTitle, ogDescription: draft.seoDescription, ogImage: article.imageUrl || undefined, twitterCard: "summary_large_image", schemaType: "Article", schemaData: draft.schemaData, canonicalUrl: article.canonicalUrl || undefined, qualityScore: qualityReport.qualityScore, seoScore: qualityReport.seoScore, qualityReport } });
-    const contentPlanItemId = await attachDraftToContentPlanItem({ tenantId: article.tenantId, sourceArticleId: id, postId: post.id, keyword: article.targetKeyword, title: article.title });
-    await prisma.sourceArticle.update({ where: { id }, data: { status: "DRAFT_CREATED", draftPostId: post.id, contentPlanItemId, metadata: { rewrittenAt: new Date().toISOString(), draftPostId: post.id, contentPlanItemId } } });
-    await writeAuditLog({ userId: session.id, tenantId: article.tenantId, action: "source_article.rewrite_to_draft", resource: "Post", resourceId: post.id, metadata: { sourceArticleId: id } });
+    await rewriteArticleToPost(id, session.id);
   } catch (e) {
     await prisma.sourceArticle.update({ where: { id }, data: { status: "FAILED", errorMessage: e instanceof Error ? e.message : "Rewrite failed" } });
   }
