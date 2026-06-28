@@ -5,6 +5,8 @@ import { getSession } from "@/server/auth/session";
 import { can } from "@/server/permissions";
 import { writeAuditLog } from "@/server/audit/log";
 import { aiGenerate } from "@/server/ai/generate";
+import { prisma } from "@/server/db";
+import { scorePostDraft } from "@/server/content/quality-score";
 import {
   createAiContentJob,
   updateAiContentJob,
@@ -13,7 +15,21 @@ import {
 } from "@/server/queries/ai-content";
 import type { AiContentType } from "@prisma/client";
 
-export type AiContentResult = { ok: boolean; jobId?: string; error?: string };
+export type AiContentResult = { ok: boolean; jobId?: string; postId?: string; error?: string };
+
+function slugify(value: string) {
+  return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 90) || `ai-content-${Date.now()}`;
+}
+
+async function uniquePostSlug(tenantId: string, base: string) {
+  let slug = base;
+  for (let i = 2; i < 50; i++) {
+    const exists = await prisma.post.findUnique({ where: { tenantId_slug: { tenantId, slug } }, select: { id: true } });
+    if (!exists) return slug;
+    slug = `${base}-${i}`;
+  }
+  return `${base}-${Date.now()}`;
+}
 
 export async function createAiContentJobAction(
   tenantId: string,
@@ -163,5 +179,58 @@ export async function deleteAiContentJobAction(jobId: string, tenantId: string):
     return { ok: true };
   } catch {
     return { ok: false, error: "Không thể xóa job" };
+  }
+}
+
+export async function publishAiJobToPostAction(jobId: string, tenantId: string): Promise<AiContentResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Chưa đăng nhập" };
+  if (!can(session.role, "EDITOR")) return { ok: false, error: "Không đủ quyền" };
+
+  const job = await getAiContentJob(jobId, tenantId);
+  if (!job) return { ok: false, error: "Job không tồn tại" };
+  if (!job.draftHtml) return { ok: false, error: "Chưa có draft. Tạo draft trước." };
+  if (job.postId) return { ok: false, postId: job.postId, error: "Draft này đã được lưu thành post." };
+
+  try {
+    const baseSlug = slugify(job.title);
+    const slug = await uniquePostSlug(tenantId, baseSlug);
+    const draftText = job.draftText || job.draftHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const excerpt = draftText.slice(0, 300);
+
+    const qualityReport = scorePostDraft({
+      title: job.title,
+      content: job.draftHtml,
+      excerpt,
+      seoTitle: job.seoTitle,
+      seoDescription: job.seoDescription,
+      keyword: job.targetKeyword,
+    });
+
+    const post = await prisma.post.create({
+      data: {
+        tenantId,
+        title: job.title,
+        slug,
+        excerpt,
+        content: job.draftHtml,
+        status: "DRAFT",
+        seoTitle: (job.seoTitle || job.title).slice(0, 70),
+        seoDescription: job.seoDescription,
+        twitterCard: "summary_large_image",
+        schemaType: "Article",
+        qualityScore: qualityReport.qualityScore,
+        seoScore: qualityReport.seoScore,
+        qualityReport,
+      },
+    });
+
+    await updateAiContentJob(jobId, tenantId, { status: "REVIEW", postId: post.id });
+    await writeAuditLog({ userId: session.id, tenantId, action: "ai_content.save_to_post", resource: "Post", resourceId: post.id, metadata: { jobId } });
+    revalidatePath(`/admin/sites/${tenantId}/ai-content/${jobId}`);
+    revalidatePath(`/admin/sites/${tenantId}/blog`);
+    return { ok: true, jobId, postId: post.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Không thể tạo post" };
   }
 }

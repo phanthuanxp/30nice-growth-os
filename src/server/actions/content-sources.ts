@@ -7,6 +7,7 @@ import { getSession } from "@/server/auth/session";
 import { can } from "@/server/permissions";
 import { writeAuditLog } from "@/server/audit/log";
 import { guessTitleFromUrl, hashContent, normalizeSourceUrl, splitUrlList } from "@/server/content/source-utils";
+import { fetchSitemapUrls, fetchRssUrls } from "@/server/content/sitemap-parser";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -62,4 +63,66 @@ export async function importSourceUrlsAction(_prev: ActionResult, form: FormData
   await writeAuditLog({ userId: session.id, tenantId, action: "source_articles.import_urls", resource: "CrawlJob", resourceId: job.id, metadata: { discovered } });
   revalidatePath("/admin/import");
   return { ok: true };
+}
+
+export async function crawlContentSourceAction(sourceId: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Chưa đăng nhập" };
+  if (!ensureEditor(session.role)) return { ok: false, error: "Không đủ quyền" };
+
+  const source = await prisma.contentSource.findUnique({ where: { id: sourceId } });
+  if (!source) return { ok: false, error: "Không tìm thấy nguồn" };
+  if (!["SITEMAP", "RSS"].includes(source.sourceType)) {
+    return { ok: false, error: "Chỉ hỗ trợ tự động crawl SITEMAP và RSS" };
+  }
+
+  await prisma.contentSource.update({ where: { id: sourceId }, data: { crawlStatus: "RUNNING" } });
+  const job = await prisma.crawlJob.create({
+    data: {
+      tenantId: source.tenantId,
+      sourceId,
+      status: "RUNNING",
+      input: { mode: source.sourceType, url: source.baseUrl },
+      startedAt: new Date(),
+      createdById: session.id,
+    },
+  });
+
+  try {
+    const discovered =
+      source.sourceType === "SITEMAP"
+        ? await fetchSitemapUrls(source.baseUrl)
+        : await fetchRssUrls(source.baseUrl);
+
+    let added = 0;
+    for (const item of discovered) {
+      const url = normalizeSourceUrl(item.url);
+      if (!url) continue;
+      const title = item.title || guessTitleFromUrl(url);
+      await prisma.sourceArticle.upsert({
+        where: { url },
+        update: { sourceId: source.id, tenantId: source.tenantId ?? null },
+        create: {
+          tenantId: source.tenantId,
+          sourceId: source.id,
+          url,
+          title,
+          status: "DISCOVERED",
+          contentHash: hashContent(url),
+          metadata: { crawlJobId: job.id },
+        },
+      });
+      added++;
+    }
+
+    await prisma.crawlJob.update({ where: { id: job.id }, data: { status: "COMPLETED", discovered: added, finishedAt: new Date() } });
+    await prisma.contentSource.update({ where: { id: sourceId }, data: { crawlStatus: "COMPLETED", lastCrawledAt: new Date() } });
+    await writeAuditLog({ userId: session.id, tenantId: source.tenantId ?? undefined, action: "content_source.crawl", resource: "CrawlJob", resourceId: job.id, metadata: { sourceType: source.sourceType, discovered: added } });
+    revalidatePath("/admin/import");
+    return { ok: true };
+  } catch (e) {
+    await prisma.crawlJob.update({ where: { id: job.id }, data: { status: "FAILED", finishedAt: new Date() } });
+    await prisma.contentSource.update({ where: { id: sourceId }, data: { crawlStatus: "FAILED" } });
+    return { ok: false, error: e instanceof Error ? e.message : "Crawl thất bại" };
+  }
 }

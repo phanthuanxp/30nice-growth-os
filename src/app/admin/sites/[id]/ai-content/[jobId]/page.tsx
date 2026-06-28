@@ -155,6 +155,7 @@ export default async function AiContentJobPage({ params }: Props) {
             status={job.status}
             hasBrief={!!brief}
             hasDraft={!!job.draftHtml}
+            existingPostId={job.postId}
           />
         </div>
       </main>

@@ -10,6 +10,7 @@ import { ContentSourceForms } from "@/components/admin/content-source-forms";
 import { ExtractPendingArticlesForm } from "@/components/admin/article-extract-actions";
 import { RewriteReadyDraftsForm } from "@/components/admin/rewrite-draft-actions";
 import { ReviewQueueActions } from "@/components/admin/review-queue-actions";
+import { CrawlSourceButton } from "@/components/admin/crawl-source-button";
 import { getTenants } from "@/server/queries/tenants";
 import { prisma } from "@/server/db";
 
@@ -52,7 +53,10 @@ export default async function ImportPage() {
             {sources.length === 0 ? <p className="text-sm text-slate-500">Chưa có nguồn crawl nào.</p> : sources.map((s) => (
               <div key={s.id} className="rounded-lg border border-slate-200 p-3">
                 <div className="flex items-start justify-between gap-3"><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-slate-500 break-all">{s.baseUrl}</p></div><Badge variant="info">{s.sourceType}</Badge></div>
-                <p className="mt-2 text-xs text-slate-400">{s.articles} articles · {s.crawlStatus}</p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-slate-400">{s.articles} articles · {s.crawlStatus}</p>
+                  <CrawlSourceButton sourceId={s.id} sourceType={s.sourceType} />
+                </div>
               </div>
             ))}
           </CardContent>
