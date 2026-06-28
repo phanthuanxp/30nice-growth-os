@@ -233,7 +233,7 @@ export default function SettingsPage() {
               <Settings className="h-4 w-4 text-slate-500" />
               Cron Endpoints
             </CardTitle>
-            <CardDescription>Thiết lập lịch gọi tự động với cron service (Vercel Cron, crontab...)</CardDescription>
+            <CardDescription>Thiết lập lịch gọi tự động với GitHub Actions hoặc crontab trên VPS.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="rounded-lg bg-slate-900 p-4 font-mono text-xs text-slate-300 space-y-3">
