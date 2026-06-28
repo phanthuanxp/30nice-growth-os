@@ -60,7 +60,7 @@ export function LeadsKanban({ tenantId, leads: initialLeads }: Props) {
 
     startTransition(async () => {
       const result = await moveLeadAction(leadId, targetStatus, tenantId);
-      if (!result.ok) {
+      if (!result.success) {
         // Revert on error
         setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, status: lead.status } : l));
       }
