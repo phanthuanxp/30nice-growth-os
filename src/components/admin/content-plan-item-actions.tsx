@@ -20,7 +20,7 @@ export function ContentPlanItemActions({ itemId, tenantId, postId, postStatus }:
 
   const handleGenerate = () => {
     startTransition(async () => {
-      await generateDraftForContentPlanItemAction(itemId, tenantId);
+      await generateDraftForContentPlanItemAction(itemId, new FormData());
       router.refresh();
     });
   };
