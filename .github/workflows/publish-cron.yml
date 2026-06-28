@@ -1,0 +1,32 @@
+name: Auto Publish Scheduled Posts
+
+on:
+  schedule:
+    # Every hour at minute 5
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish Scheduled Content
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger publish endpoint
+        run: |
+          RESPONSE=$(curl -s -o /tmp/pub_response.json -w "%{http_code}" \
+            -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://admin.30nice.vn/api/cron/publish")
+
+          echo "HTTP status: $RESPONSE"
+          cat /tmp/pub_response.json
+
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Publish pipeline failed with HTTP $RESPONSE"
+            exit 1
+          fi
+
+          PUBLISHED=$(cat /tmp/pub_response.json | grep -o '"published":[0-9]*' | grep -o '[0-9]*' || echo "0")
+          echo "Published $PUBLISHED posts"

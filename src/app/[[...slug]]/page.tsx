@@ -8,12 +8,14 @@ import { PageRenderer } from "@/components/public/page-renderer";
 import { TaxiPage } from "@/components/themes/taxi/taxi-page";
 import { RestaurantPage } from "@/components/themes/restaurant/restaurant-page";
 import { HotelPage } from "@/components/themes/hotel/hotel-page";
+import { TravelNewsPage } from "@/components/themes/travel-news/travel-news-page";
 import { ThemeChrome } from "@/components/themes/theme-chrome";
 import { prisma } from "@/server/db";
 import type { Metadata } from "next";
 import type { TaxiThemeConfig } from "@/components/themes/taxi/types";
 import type { RestaurantThemeConfig } from "@/components/themes/restaurant/types";
 import type { HotelThemeConfig } from "@/components/themes/hotel/types";
+import type { TravelNewsThemeConfig } from "@/components/themes/travel-news/types";
 
 interface Props {
   params: Promise<{ slug?: string[] }>;
@@ -226,6 +228,27 @@ export default async function PublicPage({ params }: Props) {
             themeConfig={themeConfig}
           />
         </>
+      );
+    }
+
+    if (theme === "travel-news") {
+      const themeConfig = settings?.themeConfig as Partial<TravelNewsThemeConfig> | null;
+      const recentPosts = await prisma.post.findMany({
+        where: { tenantId: tenant.id, status: "PUBLISHED" },
+        orderBy: { publishedAt: "desc" },
+        take: 9,
+        select: { id: true, title: true, slug: true, excerpt: true, featuredImage: true, publishedAt: true, category: { select: { name: true } } },
+      }).catch(() => []);
+      return (
+        <TravelNewsPage
+          siteName={tenant.name}
+          logoUrl={settings?.logoUrl}
+          email={settings?.email}
+          address={settings?.address}
+          themeConfig={themeConfig}
+          navItems={headerNav?.map((n) => ({ label: n.label, href: n.href }))}
+          recentPosts={recentPosts}
+        />
       );
     }
 

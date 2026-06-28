@@ -3,6 +3,7 @@ import { getHeaderNavItems } from "@/server/queries/menus";
 import type { TaxiThemeConfig } from "@/components/themes/taxi/types";
 import type { RestaurantThemeConfig } from "@/components/themes/restaurant/types";
 import type { HotelThemeConfig } from "@/components/themes/hotel/types";
+import type { TravelNewsThemeConfig } from "@/components/themes/travel-news/types";
 
 interface SettingsLike {
   theme?: string | null;
@@ -79,6 +80,25 @@ export async function ThemeChrome({ tenantId, tenantName, settings, children }: 
         <HotelHeader config={config} siteName={tenantName} logoUrl={settings?.logoUrl} />
         <main className="pt-16">{children}</main>
         <HotelFooter config={config} siteName={tenantName} logoUrl={settings?.logoUrl} email={settings?.email} address={settings?.address} />
+      </div>
+    );
+  }
+
+  if (theme === "travel-news") {
+    const { TravelNewsHeader } = await import("@/components/themes/travel-news/travel-news-header");
+    const { TravelNewsFooter } = await import("@/components/themes/travel-news/travel-news-footer");
+    const { DEFAULT_TRAVEL_NEWS_CONFIG } = await import("@/components/themes/travel-news/types");
+    const headerNav = await getHeaderNavItems(tenantId);
+    const config: TravelNewsThemeConfig = {
+      ...DEFAULT_TRAVEL_NEWS_CONFIG,
+      ...(settings?.themeConfig as Partial<TravelNewsThemeConfig> | null),
+      ...(headerNav ? { navItems: headerNav.map((n) => ({ label: n.label, href: n.href })) } : {}),
+    };
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <TravelNewsHeader config={config} siteName={tenantName} logoUrl={settings?.logoUrl} />
+        <main className="pt-[88px]">{children}</main>
+        <TravelNewsFooter config={config} siteName={tenantName} logoUrl={settings?.logoUrl} email={settings?.email} address={settings?.address} />
       </div>
     );
   }

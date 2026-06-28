@@ -78,6 +78,36 @@ export async function bulkUpdateLeadStatusAction(
   }
 }
 
+export async function moveLeadAction(
+  leadId: string,
+  status: "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON",
+  tenantId: string
+): Promise<LeadActionState> {
+  const user = await requireAuth();
+  if (!can(user.role, "EDITOR")) return { error: "Không đủ quyền" };
+
+  try {
+    const { prisma } = await import("@/server/db");
+    await requireTenantAccess(tenantId, "EDITOR");
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { id: true, status: true, tenantId: true } });
+    if (!lead || lead.tenantId !== tenantId) return { error: "Không tìm thấy lead" };
+    if (lead.status === status) return { success: true };
+
+    await prisma.lead.update({ where: { id: leadId }, data: { status, lastActivityAt: new Date() } });
+    await prisma.leadStatusHistory.create({
+      data: { tenantId, leadId, fromStatus: lead.status, toStatus: status, changedById: user.id },
+    }).catch(() => null);
+    await prisma.leadActivity.create({
+      data: { tenantId, leadId, type: "status_change", title: `Kéo kanban: ${lead.status} → ${status}` },
+    }).catch(() => null);
+
+    revalidatePath(`/admin/sites/${tenantId}/leads`);
+    return { success: true };
+  } catch {
+    return { error: "Lỗi khi di chuyển lead" };
+  }
+}
+
 export async function addLeadNoteAction(
   tenantId: string,
   leadId: string,

@@ -9,26 +9,15 @@ import {
   getPageviewsByDay, getTopPages, getDeviceBreakdown, getTopReferrers, getTrafficSummary,
 } from "@/server/queries/analytics";
 import { Smartphone, Eye, MousePointerClick } from "lucide-react";
+import { BarChart } from "@/components/admin/charts/bar-chart";
+import { LineChart } from "@/components/admin/charts/line-chart";
+import { DonutChart } from "@/components/admin/charts/donut-chart";
 
 export const metadata: Metadata = { title: "Analytics" };
 
-function MiniBarChart({ data }: { data: { date: string; count: number }[] }) {
-  const max = Math.max(...data.map((d) => d.count), 1);
-  return (
-    <div className="flex items-end gap-0.5 h-16">
-      {data.map((d, i) => (
-        <div
-          key={i}
-          title={`${d.date}: ${d.count} leads`}
-          className="flex-1 rounded-sm opacity-80 hover:opacity-100 transition-opacity"
-          style={{
-            height: `${Math.max(4, (d.count / max) * 100)}%`,
-            background: d.count > 0 ? "linear-gradient(to top, #4f46e5, #818cf8)" : "#f1f5f9",
-          }}
-        />
-      ))}
-    </div>
-  );
+function shortDate(d: string) {
+  const parts = d.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d;
 }
 
 export default async function AnalyticsPage() {
@@ -131,11 +120,11 @@ export default async function AnalyticsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <MiniBarChart data={leadsByDay} />
-          <div className="flex justify-between mt-2 text-xs text-slate-400">
-            <span>{leadsByDay[0]?.date ?? ""}</span>
-            <span>{leadsByDay[leadsByDay.length - 1]?.date ?? ""}</span>
-          </div>
+          <BarChart
+            data={leadsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
+            color="#4f46e5"
+            height={120}
+          />
         </CardContent>
       </Card>
 
@@ -174,7 +163,12 @@ export default async function AnalyticsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <MiniBarChart data={pageviewsByDay} />
+          <LineChart
+            data={pageviewsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
+            color="#06b6d4"
+            height={110}
+            formatValue={(v) => `${v} lượt`}
+          />
         </CardContent>
       </Card>
 
@@ -244,23 +238,17 @@ export default async function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2.5">
-              {(["NEW","CONTACTED","QUALIFIED","WON","LOST"] as const).map((status) => {
-                const count = stats.leadsByStatus[status] ?? 0;
-                const pct = stats.totalLeads > 0 ? Math.round((count / stats.totalLeads) * 100) : 0;
-                const colors: Record<string, string> = { NEW: "#6366f1", CONTACTED: "#f59e0b", QUALIFIED: "#3b82f6", WON: "#10b981", LOST: "#ef4444" };
-                const labels: Record<string, string> = { NEW: "Mới", CONTACTED: "Đã liên hệ", QUALIFIED: "Tiềm năng", WON: "Chốt được", LOST: "Thất bại" };
-                return (
-                  <div key={status} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-600 w-24 shrink-0">{labels[status]}</span>
-                    <div className="flex-1 h-2 rounded-full bg-slate-100">
-                      <div className="h-2 rounded-full" style={{ width: `${pct}%`, background: colors[status] }} />
-                    </div>
-                    <span className="text-xs font-medium text-slate-700 w-8 text-right">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <DonutChart
+              segments={[
+                { label: "Mới", value: stats.leadsByStatus["NEW"] ?? 0, color: "#6366f1" },
+                { label: "Đã liên hệ", value: stats.leadsByStatus["CONTACTED"] ?? 0, color: "#f59e0b" },
+                { label: "Tiềm năng", value: stats.leadsByStatus["QUALIFIED"] ?? 0, color: "#3b82f6" },
+                { label: "Chốt được", value: stats.leadsByStatus["WON"] ?? 0, color: "#10b981" },
+                { label: "Thất bại", value: stats.leadsByStatus["LOST"] ?? 0, color: "#ef4444" },
+              ]}
+              centerValue={stats.totalLeads}
+              centerLabel="tổng"
+            />
           </CardContent>
         </Card>
 

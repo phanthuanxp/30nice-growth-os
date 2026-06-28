@@ -9,6 +9,7 @@ import { writeAuditLog } from "@/server/audit/log";
 import { scorePostDraft } from "@/server/content/quality-score";
 import { rewriteSourceArticle } from "@/server/content/rewrite";
 import { attachDraftToContentPlanItem } from "@/server/content/content-plan-linker";
+import { fetchRelatedPosts, injectInternalLinks } from "@/server/content/internal-linker";
 
 export type ActionResult = { ok: boolean; error?: string };
 function ensureEditor(role: Role) { return can(role, "EDITOR"); }
@@ -30,8 +31,11 @@ export async function rewriteArticleToPost(articleId: string, userId: string): P
   await prisma.sourceArticle.update({ where: { id: articleId }, data: { status: "REWRITE_QUEUED" } });
   const draft = await rewriteSourceArticle({ sourceTitle: article.title, sourceText: article.extractedText, targetKeyword: article.targetKeyword, siteName: article.tenant?.name, canonicalUrl: article.canonicalUrl });
   const slug = await uniqueSlug(article.tenantId, draft.slug);
-  const qualityReport = scorePostDraft({ title: draft.title, content: draft.contentHtml, excerpt: draft.excerpt, seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, schemaData: draft.schemaData, keyword: article.targetKeyword });
-  const post = await prisma.post.create({ data: { tenantId: article.tenantId, title: draft.title, slug, excerpt: draft.excerpt, content: draft.contentHtml, featuredImage: article.imageUrl || undefined, status: "DRAFT", seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, ogTitle: draft.seoTitle, ogDescription: draft.seoDescription, ogImage: article.imageUrl || undefined, twitterCard: "summary_large_image", schemaType: "Article", schemaData: draft.schemaData, canonicalUrl: article.canonicalUrl || undefined, qualityScore: qualityReport.qualityScore, seoScore: qualityReport.seoScore, qualityReport } });
+  // Inject internal links to related published posts from same site
+  const relatedPosts = await fetchRelatedPosts(article.tenantId, article.targetKeyword, draft.slug);
+  const contentWithLinks = injectInternalLinks(draft.contentHtml, relatedPosts);
+  const qualityReport = scorePostDraft({ title: draft.title, content: contentWithLinks, excerpt: draft.excerpt, seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, schemaData: draft.schemaData, keyword: article.targetKeyword });
+  const post = await prisma.post.create({ data: { tenantId: article.tenantId, title: draft.title, slug, excerpt: draft.excerpt, content: contentWithLinks, featuredImage: article.imageUrl || undefined, status: "DRAFT", seoTitle: draft.seoTitle, seoDescription: draft.seoDescription, ogTitle: draft.seoTitle, ogDescription: draft.seoDescription, ogImage: article.imageUrl || undefined, twitterCard: "summary_large_image", schemaType: "Article", schemaData: draft.schemaData, canonicalUrl: article.canonicalUrl || undefined, qualityScore: qualityReport.qualityScore, seoScore: qualityReport.seoScore, qualityReport } });
   const contentPlanItemId = await attachDraftToContentPlanItem({ tenantId: article.tenantId, sourceArticleId: articleId, postId: post.id, keyword: article.targetKeyword, title: article.title });
   await prisma.sourceArticle.update({ where: { id: articleId }, data: { status: "DRAFT_CREATED", draftPostId: post.id, contentPlanItemId, metadata: { rewrittenAt: new Date().toISOString(), draftPostId: post.id } } });
   await writeAuditLog({ userId, tenantId: article.tenantId, action: "source_article.rewrite_to_draft", resource: "Post", resourceId: post.id, metadata: { sourceArticleId: articleId } });

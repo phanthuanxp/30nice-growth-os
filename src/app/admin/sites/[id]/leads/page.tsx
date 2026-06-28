@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Users, PhoneCall, CheckCircle2 } from "lucide-react";
+import { Users, PhoneCall, CheckCircle2, KanbanSquare, List } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { getTenantById } from "@/server/queries/tenants";
 import { getLeads, type LeadFilters } from "@/server/queries/leads";
 import type { LeadStatus } from "@prisma/client";
 import { LeadsToolbar } from "./leads-toolbar";
 import { LeadsTable, type LeadRow } from "./leads-table";
+import { LeadsKanban } from "@/components/admin/leads-kanban";
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string; view?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -35,6 +37,7 @@ const statusConfig: Record<
 export default async function SiteLeadsPage({ params, searchParams }: Props) {
   const { id } = await params;
   const sp = await searchParams;
+  const isKanban = sp.view === "kanban";
   const tenant = await getTenantById(id).catch(() => null);
   if (!tenant) notFound();
 
@@ -133,19 +136,52 @@ export default async function SiteLeadsPage({ params, searchParams }: Props) {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Danh sách leads{leads.length !== allLeads.length ? ` (${leads.length}/${allLeads.length})` : ` (${leads.length})`}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="px-5 pt-4">
-            <LeadsToolbar tenantId={id} />
-          </div>
-          <LeadsTable tenantId={id} leads={rows} />
-        </CardContent>
-      </Card>
+      {/* View toggle */}
+      <div className="flex items-center gap-2 mb-4">
+        <Link
+          href={`?view=list`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!isKanban ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+        >
+          <List className="h-4 w-4" /> Table
+        </Link>
+        <Link
+          href={`?view=kanban`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isKanban ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+        >
+          <KanbanSquare className="h-4 w-4" /> Kanban
+        </Link>
+        <span className="text-xs text-slate-400 ml-2">{allLeads.length} leads tổng</span>
+      </div>
+
+      {isKanban ? (
+        <LeadsKanban
+          tenantId={id}
+          leads={allLeads.map((l) => ({
+            id: l.id,
+            name: l.name,
+            phone: l.phone,
+            email: l.email,
+            message: l.message,
+            sourcePath: l.sourcePath,
+            status: l.status as "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON",
+            createdAt: fmt.format(l.createdAt),
+          }))}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Danh sách leads{leads.length !== allLeads.length ? ` (${leads.length}/${allLeads.length})` : ` (${leads.length})`}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="px-5 pt-4">
+              <LeadsToolbar tenantId={id} />
+            </div>
+            <LeadsTable tenantId={id} leads={rows} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

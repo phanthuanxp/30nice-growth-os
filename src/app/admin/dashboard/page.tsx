@@ -20,50 +20,17 @@ import { StatCard } from "@/components/admin/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getTenantsWithCounts } from "@/server/queries/dashboard";
+import { getPageviewsByDay, getLeadsByDay } from "@/server/queries/analytics";
 import { tenants as demoTenants, pages as demoPages, posts as demoPosts, leads as demoLeads } from "@/server/queries/demo-data";
+import { BarChart } from "@/components/admin/charts/bar-chart";
+import { LineChart } from "@/components/admin/charts/line-chart";
+import { SingleDonut } from "@/components/admin/charts/donut-chart";
 
 export const metadata: Metadata = { title: "Bảng điều khiển" };
 
-function MockBarChart({ heights }: { heights: number[] }) {
-  return (
-    <div className="flex items-end gap-1 h-20">
-      {heights.map((h, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-sm opacity-80"
-          style={{ height: `${h}%`, background: "linear-gradient(to top, #4f46e5, #818cf8)" }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function MockLineChart() {
-  return (
-    <svg viewBox="0 0 200 60" className="w-full h-16" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d="M0,50 C20,45 40,30 60,35 C80,40 100,15 120,20 C140,25 160,10 200,5" fill="none" stroke="#4f46e5" strokeWidth="2" />
-      <path d="M0,50 C20,45 40,30 60,35 C80,40 100,15 120,20 C140,25 160,10 200,5 L200,60 L0,60 Z" fill="url(#lineGrad)" />
-    </svg>
-  );
-}
-
-function MockDonut({ percent }: { percent: number }) {
-  const r = 28;
-  const circ = 2 * Math.PI * r;
-  const dash = (percent / 100) * circ;
-  return (
-    <svg viewBox="0 0 80 80" className="h-16 w-16">
-      <circle cx="40" cy="40" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10" />
-      <circle cx="40" cy="40" r={r} fill="none" stroke="#4f46e5" strokeWidth="10" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform="rotate(-90 40 40)" />
-      <text x="40" y="44" textAnchor="middle" className="text-xs font-bold fill-slate-700" fontSize="12">{percent}</text>
-    </svg>
-  );
+function shortDate(d: string) {
+  const parts = d.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d;
 }
 
 function statusVariant(status: string) {
@@ -86,13 +53,30 @@ export default async function DashboardPage() {
     status: string;
     _count: { pages: number; posts: number; leads: number };
   }> = [];
+  let pageviewsByDay: { date: string; count: number }[] = [];
+  let leadsByDay: { date: string; count: number }[] = [];
+  let avgQualityScore = 0;
   let isDemo = true;
 
   try {
-    const [dbStats, dbTenants] = await Promise.all([getDashboardStats(), getTenantsWithCounts()]);
+    const [dbStats, dbTenants, pv, ld] = await Promise.all([
+      getDashboardStats(),
+      getTenantsWithCounts(),
+      getPageviewsByDay(30),
+      getLeadsByDay(14),
+    ]);
     stats = dbStats;
     tenantsData = dbTenants;
+    pageviewsByDay = pv;
+    leadsByDay = ld;
     isDemo = false;
+
+    // Quick avg quality score from DB
+    try {
+      const { prisma } = await import("@/server/db");
+      const r = await prisma.post.aggregate({ where: { status: "PUBLISHED", qualityScore: { not: null } }, _avg: { qualityScore: true } });
+      avgQualityScore = Math.round(r._avg.qualityScore ?? 0);
+    } catch { /* ignore */ }
   } catch {
     // DB not available — show demo stats with demo tenant rows
     tenantsData = demoTenants.map((t) => ({
@@ -167,21 +151,20 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart2 className="h-4 w-4 text-indigo-500" />
-                  Tổng quan truy cập
-                </CardTitle>
-                <p className="text-xs text-slate-400 mt-0.5">Mock data · 30 ngày qua</p>
-              </div>
-              <span className="text-xs text-emerald-600 font-semibold">▲ 18.4%</span>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 text-indigo-500" />
+                Pageviews — 30 ngày qua
+              </CardTitle>
+              <span className="text-xs text-slate-400">{pageviewsByDay.reduce((s, d) => s + d.count, 0).toLocaleString()} lượt</span>
             </div>
           </CardHeader>
           <CardContent>
-            <MockBarChart heights={[30,45,38,55,42,68,72,58,80,65,75,88,70,82,90,78,85,92,75,88,95,82,78,90,85,92,88,95,90,98]} />
-            <div className="flex justify-between mt-3 text-xs text-slate-400">
-              <span>01/06</span><span>10/06</span><span>20/06</span><span>30/06</span>
-            </div>
+            <BarChart
+              data={pageviewsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
+              color="#4f46e5"
+              height={110}
+              formatValue={(v) => `${v} views`}
+            />
           </CardContent>
         </Card>
 
@@ -189,25 +172,28 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-4 w-4 text-indigo-500" />
-              Sức khoẻ SEO
+              Chất lượng nội dung
             </CardTitle>
-            <p className="text-xs text-slate-400 mt-0.5">Mock · Phase 3</p>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <MockDonut percent={74} />
+            <SingleDonut
+              percent={avgQualityScore || 74}
+              size={88}
+              color={avgQualityScore >= 75 ? "#10b981" : avgQualityScore >= 50 ? "#f59e0b" : "#ef4444"}
+              label="quality avg"
+            />
             <div className="w-full space-y-2">
               {[
-                { label: "Thẻ tiêu đề", score: 90, color: "#10b981" },
-                { label: "Mô tả meta", score: 65, color: "#f59e0b" },
-                { label: "Schema markup", score: 45, color: "#ef4444" },
-                { label: "Core Web Vitals", score: 82, color: "#10b981" },
+                { label: "Posts published", value: stats.publishedPosts, max: Math.max(stats.publishedPosts, 10), color: "#6366f1" },
+                { label: "Pages published", value: stats.publishedPages, max: Math.max(stats.publishedPages, 10), color: "#06b6d4" },
+                { label: "Leads mới", value: stats.newLeads, max: Math.max(stats.newLeads * 3, 10), color: "#10b981" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 w-32 shrink-0">{item.label}</span>
+                  <span className="text-xs text-slate-500 w-28 shrink-0">{item.label}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-slate-100">
-                    <div className="h-1.5 rounded-full" style={{ width: `${item.score}%`, background: item.color }} />
+                    <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, (item.value / item.max) * 100)}%`, background: item.color }} />
                   </div>
-                  <span className="text-xs text-slate-600 w-6 text-right">{item.score}</span>
+                  <span className="text-xs text-slate-600 w-6 text-right">{item.value}</span>
                 </div>
               ))}
             </div>
@@ -225,12 +211,17 @@ export default async function DashboardPage() {
             <p className="text-xs text-slate-400 mt-0.5">Mock · Phase 3</p>
           </CardHeader>
           <CardContent>
-            <MockLineChart />
+            <LineChart
+              data={leadsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
+              color="#7c3aed"
+              height={80}
+              formatValue={(v) => `${v} leads`}
+            />
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[
-                { label: "Tokens dùng", value: "142K" },
-                { label: "Bài viết AI", value: "38" },
-                { label: "Chi phí ước", value: "$4.20" },
+                { label: "Leads 14 ngày", value: leadsByDay.reduce((s,d)=>s+d.count,0) },
+                { label: "Posts published", value: stats.publishedPosts },
+                { label: "Sites", value: stats.totalSites },
               ].map((s) => (
                 <div key={s.label} className="rounded-lg bg-slate-50 p-2 text-center">
                   <p className="text-base font-bold text-slate-800">{s.value}</p>
