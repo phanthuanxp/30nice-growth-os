@@ -9,7 +9,6 @@ import {
   Compass,
   Settings,
   BarChart2,
-  FileBarChart,
   ChevronRight,
   Brain,
   Palette,
@@ -18,12 +17,12 @@ import {
   Image,
   Menu,
   Search,
-  Megaphone,
   Workflow,
   UploadCloud,
   Calendar,
   UserCog,
   ShieldCheck,
+  Rss,
 } from "lucide-react";
 
 interface NavItem {
@@ -41,38 +40,30 @@ interface NavGroup {
 const NAV: NavGroup[] = [
   {
     items: [
-      { label: "Bảng điều khiển CMS", href: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Bảng điều khiển", href: "/admin/dashboard", icon: LayoutDashboard },
     ],
   },
   {
-    title: "CMS tin tức du lịch",
+    title: "CMS tin tức",
     items: [
       { label: "Site / Subdomain", href: "/admin/sites", icon: Globe },
       { label: "Trang", href: "/admin/pages", icon: FileText },
-      { label: "Tin tức / Review", href: "/admin/blog", icon: BookOpen },
+      { label: "Bài viết", href: "/admin/blog", icon: BookOpen },
       { label: "Thư viện media", href: "/admin/media", icon: Image },
       { label: "Menu", href: "/admin/menus", icon: Menu },
-      { label: "Thư viện giao diện", href: "/admin/themes", icon: Palette, badge: "CMS" },
+      { label: "Giao diện", href: "/admin/themes", icon: Palette, badge: "2" },
     ],
   },
   {
-    title: "Bộ máy AI Content",
+    title: "Bộ máy AI & SEO",
     items: [
       { label: "SEO + AI Writer", href: "/admin/seo-ai", icon: Search },
       { label: "Nghiên cứu từ khoá", href: "/admin/seo/keywords", icon: Brain, badge: "Core" },
-      { label: "Tạo subdomain", href: "/admin/seo/factory", icon: Compass, badge: "Core" },
-      { label: "Phân tích", href: "/admin/analytics", icon: BarChart2 },
-      { label: "Quảng cáo", href: "/admin/ads", icon: Megaphone },
+      { label: "Subdomain Factory", href: "/admin/seo/factory", icon: Compass, badge: "Core" },
       { label: "Lịch xuất bản", href: "/admin/publishing", icon: Calendar },
       { label: "Job xuất bản", href: "/admin/automation", icon: Workflow },
-      { label: "Nhập nguồn / Crawl", href: "/admin/import", icon: UploadCloud },
-      { label: "Báo cáo", href: "/admin/reports", icon: FileBarChart },
-    ],
-  },
-  {
-    title: "Tính năng cũ / Tạm dừng",
-    items: [
-      { label: "Trung tâm lead", href: "/admin/leads", icon: UserCog, badge: "Tạm dừng" },
+      { label: "RSS + Crawl nguồn", href: "/admin/import", icon: Rss, badge: "New" },
+      { label: "Phân tích", href: "/admin/analytics", icon: BarChart2 },
     ],
   },
   {
@@ -102,15 +93,13 @@ export function Sidebar() {
         <Link href="/admin/dashboard" className="flex items-center gap-2.5">
           <div
             className="flex h-8 w-8 items-center justify-center rounded-lg text-white font-bold text-sm"
-            style={{
-              background: "linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)",
-            }}
+            style={{ background: "linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)" }}
           >
             30
           </div>
           <div className="leading-tight">
             <p className="text-xs font-bold text-white">30Nice</p>
-            <p className="text-[10px] text-slate-400">Growth OS</p>
+            <p className="text-[10px] text-slate-400">News CMS</p>
           </div>
         </Link>
       </div>
@@ -128,8 +117,7 @@ export function Sidebar() {
               {group.items.map((item) => {
                 const active =
                   pathname === item.href ||
-                  (item.href !== "/admin/dashboard" &&
-                    pathname.startsWith(item.href));
+                  (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
                 return (
                   <li key={item.href}>
                     <Link
@@ -148,9 +136,7 @@ export function Sidebar() {
                           {item.badge}
                         </span>
                       )}
-                      {active && (
-                        <ChevronRight className="h-3 w-3 opacity-60" />
-                      )}
+                      {active && <ChevronRight className="h-3 w-3 opacity-60" />}
                     </Link>
                   </li>
                 );
@@ -165,9 +151,7 @@ export function Sidebar() {
         className="px-4 py-4 shrink-0"
         style={{ borderTop: "1px solid var(--sidebar-border)" }}
       >
-        <p className="text-[10px] text-slate-600 text-center">
-          30Nice · AI Travel News CMS
-        </p>
+        <p className="text-[10px] text-slate-600 text-center">30Nice · News CMS v2</p>
       </div>
     </aside>
   );

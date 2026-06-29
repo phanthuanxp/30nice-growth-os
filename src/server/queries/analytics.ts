@@ -8,25 +8,27 @@ function daysAgo(n: number): Date {
 }
 
 export async function getLeadsByDay(days = 30, tenantId?: string) {
+  // Returns daily post publish counts (repurposed from lead tracking)
   const since = daysAgo(days);
-  const leads = await prisma.lead.findMany({
+  const posts = await prisma.post.findMany({
     where: {
-      createdAt: { gte: since },
+      status: "PUBLISHED",
+      publishedAt: { gte: since },
       ...(tenantId ? { tenantId } : {}),
     },
-    select: { createdAt: true },
-    orderBy: { createdAt: "asc" },
+    select: { publishedAt: true },
+    orderBy: { publishedAt: "asc" },
   });
 
-  // Build date buckets
   const byDate: Record<string, number> = {};
   for (let i = 0; i < days; i++) {
     const d = new Date();
     d.setDate(d.getDate() - (days - 1 - i));
     byDate[d.toISOString().split("T")[0]] = 0;
   }
-  for (const l of leads) {
-    const key = l.createdAt.toISOString().split("T")[0];
+  for (const p of posts) {
+    if (!p.publishedAt) continue;
+    const key = p.publishedAt.toISOString().split("T")[0];
     if (key in byDate) byDate[key]++;
   }
 
@@ -34,57 +36,42 @@ export async function getLeadsByDay(days = 30, tenantId?: string) {
 }
 
 export async function getLeadSourceBreakdown(tenantId?: string) {
-  const leads = await prisma.lead.findMany({
-    where: tenantId ? { tenantId } : {},
-    select: { sourcePath: true, sourceDomain: true, status: true },
+  // Returns top content categories by post count
+  const where = tenantId ? { tenantId } : {};
+  const posts = await prisma.post.findMany({
+    where: { ...where, status: "PUBLISHED" },
+    select: { category: { select: { name: true } } },
   });
 
   const bySource: Record<string, { total: number; won: number }> = {};
-  for (const l of leads) {
-    const key = l.sourcePath ?? "(direct)";
+  for (const p of posts) {
+    const key = p.category?.name ?? "(Không phân loại)";
     if (!bySource[key]) bySource[key] = { total: 0, won: 0 };
     bySource[key].total++;
-    if (l.status === "WON") bySource[key].won++;
   }
 
   return Object.entries(bySource)
-    .map(([source, data]) => ({ source, ...data, rate: data.total > 0 ? Math.round((data.won / data.total) * 100) : 0 }))
+    .map(([source, data]) => ({ source, ...data, rate: 0 }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 10);
 }
 
 export async function getContentStats(tenantId?: string) {
   const where = tenantId ? { tenantId } : {};
-  const [publishedPages, publishedPosts, totalLeads, leadsByStatusRaw] = await Promise.all([
+  const [publishedPages, publishedPosts, totalPosts] = await Promise.all([
     prisma.page.count({ where: { ...where, status: "PUBLISHED" } }),
     prisma.post.count({ where: { ...where, status: "PUBLISHED" } }),
-    prisma.lead.count({ where }),
-    prisma.lead.groupBy({ by: ["status"], where, _count: true }),
+    prisma.post.count({ where }),
   ]);
-
-  const leadsByStatus = Object.fromEntries(leadsByStatusRaw.map((r) => [r.status, r._count]));
-  return { publishedPages, publishedPosts, totalLeads, leadsByStatus };
+  return { publishedPages, publishedPosts, totalLeads: totalPosts, leadsByStatus: { NEW: totalPosts } };
 }
 
 export async function getTenantComparison() {
   const tenants = await prisma.tenant.findMany({
     where: { status: "ACTIVE" },
-    include: { _count: { select: { pages: true, posts: true, leads: true } } },
+    include: { _count: { select: { pages: true, posts: true } } },
     orderBy: { name: "asc" },
   });
-
-  const newLeads = await prisma.lead.groupBy({
-    by: ["tenantId"],
-    where: { status: "NEW" },
-    _count: true,
-  });
-  const wonLeads = await prisma.lead.groupBy({
-    by: ["tenantId"],
-    where: { status: "WON" },
-    _count: true,
-  });
-  const newMap = Object.fromEntries(newLeads.map((r) => [r.tenantId, r._count]));
-  const wonMap = Object.fromEntries(wonLeads.map((r) => [r.tenantId, r._count]));
 
   return tenants.map((t) => ({
     id: t.id,
@@ -92,47 +79,11 @@ export async function getTenantComparison() {
     slug: t.slug,
     pages: t._count.pages,
     posts: t._count.posts,
-    leads: t._count.leads,
-    newLeads: newMap[t.id] ?? 0,
-    wonLeads: wonMap[t.id] ?? 0,
+    leads: 0,
+    newLeads: 0,
+    wonLeads: 0,
   }));
 }
-
-export async function getMonthlyLeadReport(months = 6, tenantId?: string) {
-  const since = new Date();
-  since.setMonth(since.getMonth() - months);
-
-  const leads = await prisma.lead.findMany({
-    where: {
-      createdAt: { gte: since },
-      ...(tenantId ? { tenantId } : {}),
-    },
-    select: { createdAt: true, status: true },
-  });
-
-  const byMonth: Record<string, { total: number; won: number }> = {};
-  for (let i = 0; i < months; i++) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - (months - 1 - i));
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    byMonth[key] = { total: 0, won: 0 };
-  }
-  for (const l of leads) {
-    const key = `${l.createdAt.getFullYear()}-${String(l.createdAt.getMonth() + 1).padStart(2, "0")}`;
-    if (key in byMonth) {
-      byMonth[key].total++;
-      if (l.status === "WON") byMonth[key].won++;
-    }
-  }
-
-  return Object.entries(byMonth).map(([month, data]) => ({
-    month,
-    ...data,
-    rate: data.total > 0 ? Math.round((data.won / data.total) * 100) : 0,
-  }));
-}
-
-// ===== Pageview analytics (AnalyticsEvent) =====
 
 export async function getPageviewsByDay(days = 30, tenantId?: string) {
   const since = daysAgo(days);
@@ -214,14 +165,14 @@ export async function getTopReferrers(days = 30, tenantId?: string, limit = 8) {
 
 export async function getTrafficSummary(days = 30, tenantId?: string) {
   const since = daysAgo(days);
-  const [pageviews, leads] = await Promise.all([
+  const [pageviews, posts] = await Promise.all([
     prisma.analyticsEvent.count({
       where: { type: "pageview", createdAt: { gte: since }, ...(tenantId ? { tenantId } : {}) },
     }),
-    prisma.lead.count({
-      where: { createdAt: { gte: since }, ...(tenantId ? { tenantId } : {}) },
+    prisma.post.count({
+      where: { status: "PUBLISHED", publishedAt: { gte: since }, ...(tenantId ? { tenantId } : {}) },
     }),
   ]);
-  const conversionRate = pageviews > 0 ? (leads / pageviews) * 100 : 0;
-  return { pageviews, leads, conversionRate };
+  const conversionRate = pageviews > 0 ? (posts / pageviews) * 100 : 0;
+  return { pageviews, leads: posts, conversionRate };
 }

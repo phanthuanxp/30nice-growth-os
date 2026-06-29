@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { PostForm } from "@/components/admin/post-form";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { PostSeoAuditCard } from "@/components/admin/post-seo-audit";
 import { getPostById, getCategoriesByTenant } from "@/server/queries/posts";
 import { updatePostAction, deleteSitePostAction, createCategoryAction, deleteCategoryAction } from "@/server/actions/posts";
 
@@ -30,12 +31,23 @@ export default async function SiteEditPostPage({ params }: Props) {
   const boundCreateCategory = createCategoryAction.bind(null, id);
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title={`Sửa: ${post.title}`}
         description={`/blog/${post.slug} · ${post.status}`}
         action={<DeleteButton onDelete={deleteAction} label="Xóa bài" />}
       />
+
+      <PostSeoAuditCard
+        title={post.title}
+        content={post.content ?? ""}
+        seoTitle={post.seoTitle}
+        seoDescription={post.seoDescription}
+        excerpt={post.excerpt}
+        seoScore={post.seoScore}
+        qualityScore={post.qualityScore}
+      />
+
       <Card>
         <CardContent className="pt-6">
           <PostForm

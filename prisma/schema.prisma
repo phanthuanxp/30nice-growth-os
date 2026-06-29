@@ -26,14 +26,6 @@ enum ContentStatus {
   ARCHIVED
 }
 
-enum LeadStatus {
-  NEW
-  CONTACTED
-  QUALIFIED
-  LOST
-  WON
-}
-
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -100,10 +92,6 @@ model Tenant {
   forms          Form[]
   formSubmissions FormSubmission[]
   redirectRules  RedirectRule[]
-  leads          Lead[]
-  leadActivities LeadActivity[]
-  leadNotes      LeadNote[]
-  leadStatusHistories LeadStatusHistory[]
   aiUsageLogs    AiUsageLog[]
   seoAudits      SeoAudit[]
   integrations   Integration[]
@@ -378,80 +366,6 @@ model RedirectRule {
   @@index([tenantId, active])
 }
 
-model Lead {
-  id           String     @id @default(cuid())
-  tenantId     String
-  name         String
-  phone        String?
-  email        String?
-  message      String?
-  sourcePath   String?
-  sourceDomain String?
-  status       LeadStatus @default(NEW)
-  notes        String?
-  sourceType   String?
-  utmSource    String?
-  utmMedium    String?
-  utmCampaign  String?
-  assignedToId String?
-  lastActivityAt DateTime?
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  activities   LeadActivity[]
-  leadNotes    LeadNote[]
-  statusHistory LeadStatusHistory[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@index([tenantId, status])
-  @@index([tenantId, sourceType])
-  @@index([assignedToId])
-}
-
-model LeadActivity {
-  id        String   @id @default(cuid())
-  tenantId  String
-  leadId    String
-  type      String
-  title     String
-  detail    String?
-  metadata  Json?
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@index([tenantId, createdAt])
-  @@index([leadId, createdAt])
-}
-
-model LeadNote {
-  id        String   @id @default(cuid())
-  tenantId  String
-  leadId    String
-  body      String
-  authorId  String?
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@index([tenantId, createdAt])
-  @@index([leadId, createdAt])
-}
-
-model LeadStatusHistory {
-  id        String     @id @default(cuid())
-  tenantId  String
-  leadId    String
-  fromStatus LeadStatus?
-  toStatus   LeadStatus
-  changedById String?
-  note      String?
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  createdAt DateTime   @default(now())
-
-  @@index([tenantId, createdAt])
-  @@index([leadId, createdAt])
-}
 
 model AiUsageLog {
   id        String   @id @default(cuid())

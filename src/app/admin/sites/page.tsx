@@ -25,7 +25,7 @@ export default async function SitesPage() {
     slug: string;
     primaryDomain: string | null;
     status: string;
-    _count: { pages: number; posts: number; leads: number };
+    _count: { pages: number; posts: number };
   };
 
   let tenantList: TenantRow[] = [];
@@ -39,7 +39,7 @@ export default async function SitesPage() {
       slug: t.slug,
       primaryDomain: t.primaryDomain,
       status: t.status,
-      _count: t._count,
+      _count: { pages: t._count.pages, posts: t._count.posts },
     }));
   } catch {
     isDemo = true;
@@ -49,12 +49,12 @@ export default async function SitesPage() {
       slug: t.slug,
       primaryDomain: t.primaryDomain,
       status: t.status,
-      _count: { pages: t.pages, posts: t.posts, leads: t.leads },
+      _count: { pages: t.pages, posts: t.posts },
     }));
   }
 
   const active = tenantList.filter((t) => t.status === "ACTIVE").length;
-  const totalLeads = tenantList.reduce((s, t) => s + t._count.leads, 0);
+  const totalPosts = tenantList.reduce((s, t) => s + t._count.posts, 0);
 
   return (
     <div>
@@ -75,7 +75,7 @@ export default async function SitesPage() {
         {[
           { label: "Tổng sites", value: tenantList.length, color: "text-indigo-600" },
           { label: "Đang hoạt động", value: active, color: "text-emerald-600" },
-          { label: "Tổng leads", value: totalLeads, color: "text-amber-600" },
+          { label: "Tổng bài viết", value: totalPosts, color: "text-amber-600" },
         ].map((s) => (
           <Card key={s.label} className="p-4 text-center">
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -109,7 +109,6 @@ export default async function SitesPage() {
                 <TableHeader>Domain chính</TableHeader>
                 <TableHeader>Trang</TableHeader>
                 <TableHeader>Bài viết</TableHeader>
-                <TableHeader>Lead</TableHeader>
                 <TableHeader>Trạng thái</TableHeader>
                 <TableHeader></TableHeader>
               </tr>
@@ -142,9 +141,6 @@ export default async function SitesPage() {
                   </TableCell>
                   <TableCell>
                     <span className="font-medium text-slate-700">{t._count.posts}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-medium text-emerald-700">{t._count.leads}</span>
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant(t.status)}>{t.status}</Badge>

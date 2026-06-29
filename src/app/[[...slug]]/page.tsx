@@ -5,16 +5,10 @@ import { getPageBySlug } from "@/server/queries/pages";
 import { getHeaderNavItems } from "@/server/queries/menus";
 import { pages as demoPages } from "@/server/queries/demo-data";
 import { PageRenderer } from "@/components/public/page-renderer";
-import { TaxiPage } from "@/components/themes/taxi/taxi-page";
-import { RestaurantPage } from "@/components/themes/restaurant/restaurant-page";
-import { HotelPage } from "@/components/themes/hotel/hotel-page";
 import { TravelNewsPage } from "@/components/themes/travel-news/travel-news-page";
 import { ThemeChrome } from "@/components/themes/theme-chrome";
 import { prisma } from "@/server/db";
 import type { Metadata } from "next";
-import type { TaxiThemeConfig } from "@/components/themes/taxi/types";
-import type { RestaurantThemeConfig } from "@/components/themes/restaurant/types";
-import type { HotelThemeConfig } from "@/components/themes/hotel/types";
 import type { TravelNewsThemeConfig } from "@/components/themes/travel-news/types";
 
 interface Props {
@@ -100,30 +94,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function buildLocalBusinessJsonLd(opts: {
-  name: string;
-  url: string;
-  phone?: string | null;
-  email?: string | null;
-  address?: string | null;
-  logoUrl?: string | null;
-  type?: string;
-}): object {
-  return {
-    "@context": "https://schema.org",
-    "@type": opts.type ?? "LocalBusiness",
-    name: opts.name,
-    url: opts.url,
-    telephone: opts.phone || undefined,
-    email: opts.email || undefined,
-    address: opts.address
-      ? { "@type": "PostalAddress", streetAddress: opts.address, addressCountry: "VN" }
-      : undefined,
-    image: opts.logoUrl || undefined,
-    logo: opts.logoUrl || undefined,
-  };
-}
-
 export default async function PublicPage({ params }: Props) {
   const { slug: slugParts } = await params;
   const slug = (slugParts ?? []).join("/");
@@ -142,94 +112,12 @@ export default async function PublicPage({ params }: Props) {
   }
 
   const tenant = await resolveTenant();
-  const host = (await headers()).get("host")?.replace(/^www\./, "") ?? "";
   const settings = await getSiteSettings(tenant.id);
   const headerNav = await getHeaderNavItems(tenant.id);
 
   // Homepage — theme renderer
   if (!slug) {
     const theme = settings?.theme ?? "default";
-
-    if (theme === "taxi") {
-      const themeConfig = {
-        ...(settings?.themeConfig as Partial<TaxiThemeConfig> | null),
-        ...(headerNav ? { navItems: headerNav } : {}),
-      };
-      const businessJsonLd = buildLocalBusinessJsonLd({
-        name: tenant.name,
-        url: `https://${host}/`,
-        phone: (themeConfig as Partial<TaxiThemeConfig>).phone,
-        email: settings?.email,
-        address: settings?.address,
-        logoUrl: settings?.logoUrl,
-      });
-
-      return (
-        <>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
-          />
-          <TaxiPage
-            siteName={tenant.name}
-            logoUrl={settings?.logoUrl}
-            email={settings?.email}
-            address={settings?.address}
-            themeConfig={themeConfig}
-          />
-        </>
-      );
-    }
-
-    if (theme === "restaurant") {
-      const themeConfig = settings?.themeConfig as Partial<RestaurantThemeConfig> | null;
-      const businessJsonLd = buildLocalBusinessJsonLd({
-        name: tenant.name,
-        url: `https://${host}/`,
-        phone: themeConfig?.phone,
-        email: settings?.email,
-        address: settings?.address,
-        logoUrl: settings?.logoUrl,
-        type: "Restaurant",
-      });
-      return (
-        <>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }} />
-          <RestaurantPage
-            siteName={tenant.name}
-            logoUrl={settings?.logoUrl}
-            email={settings?.email}
-            address={settings?.address}
-            themeConfig={themeConfig}
-          />
-        </>
-      );
-    }
-
-    if (theme === "hotel") {
-      const themeConfig = settings?.themeConfig as Partial<HotelThemeConfig> | null;
-      const businessJsonLd = buildLocalBusinessJsonLd({
-        name: tenant.name,
-        url: `https://${host}/`,
-        phone: themeConfig?.phone,
-        email: settings?.email,
-        address: settings?.address,
-        logoUrl: settings?.logoUrl,
-        type: "Hotel",
-      });
-      return (
-        <>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }} />
-          <HotelPage
-            siteName={tenant.name}
-            logoUrl={settings?.logoUrl}
-            email={settings?.email}
-            address={settings?.address}
-            themeConfig={themeConfig}
-          />
-        </>
-      );
-    }
 
     if (theme === "travel-news") {
       const themeConfig = settings?.themeConfig as Partial<TravelNewsThemeConfig> | null;
@@ -263,7 +151,6 @@ export default async function PublicPage({ params }: Props) {
     page = demoPages.find((p) => p.tenantId === tenant.id && p.slug === slug) ?? null;
   }
 
-  // Not found → check redirect rules before 404
   if (!page || page.status !== "PUBLISHED") {
     const rule = await findRedirect(tenant.id, `/${slug}`);
     if (rule) {

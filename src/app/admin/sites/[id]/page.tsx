@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText, BookOpen, Users, Search, Settings, Plus, ArrowRight } from "lucide-react";
+import { FileText, BookOpen, Brain, Search, Settings, Plus, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { getTenantById } from "@/server/queries/tenants";
 import { getPagesByTenant } from "@/server/queries/pages";
 import { getPostsByTenant } from "@/server/queries/posts";
-import { getLeads } from "@/server/queries/leads";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -27,19 +26,17 @@ export default async function SiteDashboardPage({ params }: Props) {
 
   if (!tenant) notFound();
 
-  const [pages, posts, leads] = await Promise.allSettled([
+  const [pages, posts] = await Promise.allSettled([
     getPagesByTenant(id),
     getPostsByTenant(id),
-    getLeads(id),
   ]);
 
   const pageList = pages.status === "fulfilled" ? pages.value : [];
   const postList = posts.status === "fulfilled" ? posts.value : [];
-  const leadList = leads.status === "fulfilled" ? leads.value : [];
 
   const publishedPages = pageList.filter((p) => p.status === "PUBLISHED").length;
   const publishedPosts = postList.filter((p) => p.status === "PUBLISHED").length;
-  const newLeads = leadList.filter((l) => l.status === "NEW").length;
+  const draftPosts = postList.filter((p) => p.status === "DRAFT").length;
 
   const stats = [
     {
@@ -61,19 +58,20 @@ export default async function SiteDashboardPage({ params }: Props) {
       href: `/admin/sites/${id}/blog`,
     },
     {
-      label: "Lead",
-      value: leadList.length,
-      sub: `${newLeads} mới`,
-      icon: Users,
+      label: "Draft chờ duyệt",
+      value: draftPosts,
+      sub: "bài chưa xuất bản",
+      icon: Brain,
       color: "text-amber-600",
       bg: "bg-amber-50",
-      href: `/admin/sites/${id}/leads`,
+      href: `/admin/sites/${id}/blog`,
     },
   ];
 
   const quickActions = [
     { label: "Tạo Page mới", href: `/admin/sites/${id}/pages/new`, icon: Plus },
     { label: "Viết bài mới", href: `/admin/sites/${id}/blog/new`, icon: Plus },
+    { label: "AI Content Plan", href: `/admin/sites/${id}/content-plan`, icon: Brain },
     { label: "Kiểm tra SEO", href: `/admin/sites/${id}/seo`, icon: Search },
     { label: "Cài đặt site", href: `/admin/sites/${id}/settings`, icon: Settings },
   ];
@@ -94,7 +92,6 @@ export default async function SiteDashboardPage({ params }: Props) {
         }
       />
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {stats.map((s) => (
           <Link key={s.label} href={s.href}>
@@ -113,7 +110,6 @@ export default async function SiteDashboardPage({ params }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-6">
-        {/* Quick actions */}
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Thao tác nhanh</h3>
           <div className="space-y-2">
@@ -121,9 +117,7 @@ export default async function SiteDashboardPage({ params }: Props) {
               <Link key={a.href} href={a.href}>
                 <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-50 transition-colors group">
                   <a.icon className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
-                  <span className="text-sm text-slate-700 group-hover:text-indigo-700 flex-1">
-                    {a.label}
-                  </span>
+                  <span className="text-sm text-slate-700 group-hover:text-indigo-700 flex-1">{a.label}</span>
                   <ArrowRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400" />
                 </div>
               </Link>
@@ -131,7 +125,6 @@ export default async function SiteDashboardPage({ params }: Props) {
           </div>
         </Card>
 
-        {/* Recent posts */}
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-slate-700">Bài viết gần đây</h3>
@@ -151,10 +144,7 @@ export default async function SiteDashboardPage({ params }: Props) {
                     <BookOpen className="h-4 w-4 text-slate-300 mt-0.5 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm text-slate-700 truncate">{p.title}</p>
-                      <Badge
-                        variant={p.status === "PUBLISHED" ? "success" : "warning"}
-                        className="text-[10px] mt-0.5"
-                      >
+                      <Badge variant={p.status === "PUBLISHED" ? "success" : "warning"} className="text-[10px] mt-0.5">
                         {p.status}
                       </Badge>
                     </div>

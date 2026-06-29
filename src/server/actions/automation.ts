@@ -90,32 +90,7 @@ export async function runJobAction(id: string): Promise<{ error?: string; messag
       }
 
       case "lead_notify": {
-        if (!currentPayload.webhookUrl) {
-          result = { ok: false, message: "Chưa cấu hình Webhook URL" };
-          break;
-        }
-        const lastAt = currentPayload.lastNotifiedAt ? new Date(currentPayload.lastNotifiedAt) : new Date(0);
-        const newLeads = await prisma.lead.findMany({
-          where: { tenantId: job.tenantId, createdAt: { gt: lastAt } },
-        });
-        if (newLeads.length === 0) {
-          result = { ok: true, message: "Không có lead mới" };
-          break;
-        }
-        const res = await fetch(currentPayload.webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "new_leads",
-            site: job.tenant.name,
-            count: newLeads.length,
-            leads: newLeads.map((l) => ({ name: l.name, phone: l.phone, message: l.message, source: l.sourcePath })),
-          }),
-        }).catch(() => null);
-        result = {
-          ok: res?.ok ?? false,
-          message: `Đã gửi ${newLeads.length} lead mới qua webhook (HTTP ${res?.status ?? "ERR"})`,
-        };
+        result = { ok: false, message: "Tính năng lead_notify đã bị gỡ bỏ" };
         break;
       }
 

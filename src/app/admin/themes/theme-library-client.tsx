@@ -21,47 +21,31 @@ interface Props {
 
 // Visual mockup per theme
 function ThemePreviewMockup({ theme }: { theme: ThemeDefinition }) {
-  if (theme.id === "taxi") {
+  if (theme.id === "travel-news") {
     return (
       <div className="w-full h-full flex flex-col text-[4px] overflow-hidden rounded-t-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-2 py-1 bg-white border-b border-gray-100">
+        <div className="flex items-center justify-between px-2 py-1 bg-slate-900">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-blue-700" />
-            <div className="w-8 h-1.5 rounded bg-gray-300" />
+            <div className="w-3 h-3 rounded bg-emerald-500" />
+            <div className="w-8 h-1 rounded bg-white/30" />
           </div>
           <div className="flex gap-1">
-            <div className="w-7 h-2 rounded bg-blue-700" />
-            <div className="w-7 h-2 rounded bg-green-500" />
+            {[1,2,3,4].map(i => <div key={i} className="w-5 h-1 rounded bg-white/20" />)}
           </div>
         </div>
-        {/* Hero */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-1 py-2"
-          style={{ background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" }}>
-          <div className="w-16 h-1.5 rounded bg-white/80" />
-          <div className="w-12 h-1 rounded bg-white/50" />
-          <div className="flex gap-1 mt-1">
-            <div className="w-7 h-2 rounded bg-orange-500" />
-            <div className="w-7 h-2 rounded bg-green-500" />
+        <div className="flex gap-1 px-1.5 py-0.5 bg-slate-800">
+          {[1,2,3,4,5].map(i => <div key={i} className="w-6 h-1 rounded bg-white/15" />)}
+        </div>
+        <div className="flex gap-1 p-1.5 bg-gray-50 flex-1">
+          <div className="flex-[2] rounded bg-slate-200 h-full" />
+          <div className="flex-1 flex flex-col gap-1">
+            {[1,2,3].map(i => <div key={i} className="flex-1 rounded bg-white border border-gray-100" />)}
           </div>
-        </div>
-        {/* Features bar */}
-        <div className="flex gap-1 px-1.5 py-1 bg-blue-700">
-          {[1,2,3].map(i => (
-            <div key={i} className="flex-1 h-3 rounded bg-white/20" />
-          ))}
-        </div>
-        {/* Cards */}
-        <div className="flex gap-1 px-1.5 py-1 bg-gray-50">
-          {[1,2,3].map(i => (
-            <div key={i} className="flex-1 rounded bg-white border border-gray-100 h-6" />
-          ))}
         </div>
       </div>
     );
   }
 
-  // Generic coming-soon mockup
   return (
     <div className="w-full h-full flex flex-col overflow-hidden rounded-t-xl">
       <div className="h-8 flex items-center justify-between px-3"

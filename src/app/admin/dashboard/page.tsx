@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getTenantsWithCounts } from "@/server/queries/dashboard";
 import { getPageviewsByDay, getLeadsByDay } from "@/server/queries/analytics";
-import { tenants as demoTenants, pages as demoPages, posts as demoPosts, leads as demoLeads } from "@/server/queries/demo-data";
+import { tenants as demoTenants, pages as demoPages, posts as demoPosts } from "@/server/queries/demo-data";
 import { BarChart } from "@/components/admin/charts/bar-chart";
 import { LineChart } from "@/components/admin/charts/line-chart";
 import { SingleDonut } from "@/components/admin/charts/donut-chart";
@@ -44,14 +44,14 @@ export default async function DashboardPage() {
     totalSites: demoTenants.length,
     publishedPages: demoPages.filter((p) => p.status === "PUBLISHED").length,
     publishedPosts: demoPosts.filter((p) => p.status === "PUBLISHED").length,
-    newLeads: demoLeads.filter((l) => l.status === "NEW").length,
+    newLeads: 0,
   };
   let tenantsData: Array<{
     id: string;
     name: string;
     primaryDomain: string | null;
     status: string;
-    _count: { pages: number; posts: number; leads: number };
+    _count: { pages: number; posts: number };
   }> = [];
   let pageviewsByDay: { date: string; count: number }[] = [];
   let leadsByDay: { date: string; count: number }[] = [];
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
       name: t.name,
       primaryDomain: t.primaryDomain,
       status: t.status,
-      _count: { pages: t.pages, posts: t.posts, leads: t.leads },
+      _count: { pages: t.pages, posts: t.posts },
     }));
   }
 
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         <StatCard title="Tổng Sites" value={stats.totalSites} description="tenant đang hoạt động" icon={Globe} iconColor="text-indigo-600" trend={{ value: 12, label: "tháng trước" }} />
         <StatCard title="Pages đã publish" value={stats.publishedPages} description="trên tổng số trang" icon={FileText} iconColor="text-sky-600" />
         <StatCard title="Bài viết đã publish" value={stats.publishedPosts} description="posts đã xuất bản" icon={BookOpen} iconColor="text-violet-600" trend={{ value: 8, label: "tuần trước" }} />
-        <StatCard title="Leads mới" value={stats.newLeads} description="cần xử lý" icon={Users} iconColor="text-emerald-600" trend={{ value: 23, label: "hôm qua" }} />
+        <StatCard title="Bài viết hôm nay" value={leadsByDay[leadsByDay.length - 1]?.count ?? 0} description="leads từ content" icon={Users} iconColor="text-emerald-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -292,11 +292,7 @@ export default async function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-700">{t._count.posts}</p>
-                    <p className="text-[10px] text-slate-400">bài</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-600">{t._count.leads}</p>
-                    <p className="text-[10px] text-slate-400">lead</p>
+                    <p className="text-[10px] text-slate-400">bài viết</p>
                   </div>
                   <Badge variant={statusVariant(t.status)}>{t.status}</Badge>
                 </div>

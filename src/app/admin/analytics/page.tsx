@@ -132,7 +132,7 @@ export default async function AnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Pageviews 30 ngày", value: traffic.pageviews.toLocaleString("vi-VN"), icon: Eye, color: "text-cyan-600" },
-          { label: "Leads 30 ngày", value: traffic.leads, icon: Users, color: "text-indigo-600" },
+          { label: "Bài đăng 30 ngày", value: traffic.leads, icon: Users, color: "text-indigo-600" },
           { label: "Tỉ lệ chuyển đổi", value: `${traffic.conversionRate.toFixed(1)}%`, icon: MousePointerClick, color: "text-emerald-600" },
           { label: "Mobile / Desktop", value: `${devices.mobile} / ${devices.desktop}`, icon: Smartphone, color: "text-violet-600" },
         ].map((s) => (
@@ -311,9 +311,7 @@ export default async function AnalyticsPage() {
                 <TableHeader>Site</TableHeader>
                 <TableHeader>Trang</TableHeader>
                 <TableHeader>Bài viết</TableHeader>
-                <TableHeader>Tổng leads</TableHeader>
-                <TableHeader>Lead mới</TableHeader>
-                <TableHeader>Đã chốt</TableHeader>
+                <TableHeader>Trạng thái</TableHeader>
               </tr>
             </TableHead>
             <TableBody>
@@ -322,12 +320,8 @@ export default async function AnalyticsPage() {
                   <TableCell className="font-medium text-slate-800">{t.name}</TableCell>
                   <TableCell>{t.pages}</TableCell>
                   <TableCell>{t.posts}</TableCell>
-                  <TableCell>{t.leads}</TableCell>
                   <TableCell>
-                    <Badge variant="info">{t.newLeads}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="success">{t.wonLeads}</Badge>
+                    <Badge variant="success">Active</Badge>
                   </TableCell>
                 </TableRow>
               ))}

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AiWriter } from "@/components/admin/ai-writer";
+import { ContentBriefGenerator } from "@/components/admin/content-brief-generator";
 import { runSeoAudit } from "@/server/queries/seo";
 import type { AiProvider } from "@/app/api/ai/generate/route";
 import { getTenants } from "@/server/queries/tenants";
@@ -201,6 +202,9 @@ export default async function SeoAiPage({ searchParams }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Content Brief Generator */}
+      <ContentBriefGenerator />
 
       {/* AI Writer */}
       <AiWriter configuredProviders={configuredProviders} />

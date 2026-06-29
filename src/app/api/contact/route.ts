@@ -42,7 +42,6 @@ export async function POST(request: Request) {
     ? crypto.createHash("sha256").update(forwardedFor.split(",")[0].trim()).digest("hex")
     : undefined;
 
-  // Resolve tenant by domain if tenantId not provided
   let tenantId = parsed.data.tenantId;
   if (!tenantId && sourceDomain) {
     const domain = sourceDomain.replace(/:\d+$/, "").replace(/^www\./, "");
@@ -53,7 +52,6 @@ export async function POST(request: Request) {
   }
 
   if (!tenantId) {
-    // Fallback: use first available tenant
     const fallback = await prisma.tenant
       .findFirst({ where: { status: "ACTIVE" } })
       .catch(() => null);
@@ -68,46 +66,27 @@ export async function POST(request: Request) {
     ? await prisma.form.findUnique({ where: { tenantId_slug: { tenantId, slug: parsed.data.formSlug } }, select: { id: true } }).catch(() => null)
     : null;
 
-  const lead = await prisma.lead.create({
-    data: {
-      tenantId,
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      email: parsed.data.email,
-      message: parsed.data.message,
-      sourcePath: parsed.data.sourcePath,
-      sourceDomain,
-      sourceType: parsed.data.sourceType ?? "contact_form",
-      utmSource: parsed.data.utmSource,
-      utmMedium: parsed.data.utmMedium,
-      utmCampaign: parsed.data.utmCampaign,
-      status: "NEW",
-      lastActivityAt: new Date(),
-    },
-  });
-
-  await prisma.leadActivity.create({
-    data: {
-      tenantId,
-      leadId: lead.id,
-      type: "created",
-      title: "Lead mới từ form liên hệ",
-      metadata: { sourceDomain, sourcePath: parsed.data.sourcePath },
-    },
-  }).catch(() => null);
-
-  await prisma.formSubmission.create({
+  const submission = await prisma.formSubmission.create({
     data: {
       tenantId,
       formId: form?.id ?? null,
-      leadId: lead.id,
-      payload: parsed.data,
+      payload: {
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        email: parsed.data.email,
+        message: parsed.data.message,
+        sourcePath: parsed.data.sourcePath,
+        sourceType: parsed.data.sourceType ?? "contact_form",
+        utmSource: parsed.data.utmSource,
+        utmMedium: parsed.data.utmMedium,
+        utmCampaign: parsed.data.utmCampaign,
+      },
       sourcePath: parsed.data.sourcePath,
       sourceDomain,
       userAgent,
       ipHash,
     },
-  }).catch(() => null);
+  });
 
-  return NextResponse.json({ ok: true, id: lead.id }, { status: 201 });
+  return NextResponse.json({ ok: true, id: submission.id }, { status: 201 });
 }

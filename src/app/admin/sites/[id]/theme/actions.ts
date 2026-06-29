@@ -3,7 +3,6 @@
 import { prisma } from "@/server/db";
 import { getSession } from "@/server/auth/session";
 import { requireTenantAccess } from "@/server/permissions/guard";
-import type { TaxiThemeConfig } from "@/components/themes/taxi/types";
 
 export async function saveThemeSettings(
   siteId: string,
@@ -13,7 +12,7 @@ export async function saveThemeSettings(
     zaloLink?: string;
     primaryColor?: string;
     logoUrl?: string;
-    themeConfig?: Partial<TaxiThemeConfig>;
+    themeConfig?: Record<string, unknown>;
   }
 ) {
   const user = await getSession();

@@ -5,7 +5,7 @@ export async function getTenants() {
   return prisma.tenant.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      _count: { select: { pages: true, posts: true, leads: true } },
+      _count: { select: { pages: true, posts: true } },
       domains: { where: { primary: true }, take: 1 },
     },
   });
@@ -17,7 +17,7 @@ export async function getTenantById(id: string) {
     include: {
       settings: true,
       domains: true,
-      _count: { select: { pages: true, posts: true, leads: true } },
+      _count: { select: { pages: true, posts: true } },
     },
   });
 }
@@ -27,22 +27,15 @@ export async function getTenantBySlug(slug: string) {
 }
 
 export async function getTenantByDomain(host: string) {
-  // Check Domain table first (supports multiple domains per tenant)
   const domain = await prisma.domain.findUnique({
     where: { host },
     include: { tenant: true },
   });
   if (domain?.tenant) return domain.tenant;
 
-  // Fallback: match Tenant.primaryDomain (for tenants not yet migrated to Domain table)
   return prisma.tenant.findFirst({ where: { primaryDomain: host } });
 }
 
-/**
- * Resolve a tenant from a subdomain label (the part before the apex/primary host).
- * Matches by tenant slug, or by any Domain row whose host starts with the subdomain.
- * Used by the wildcard subdomain pattern: <subdomain>.<PRIMARY_HOST>.
- */
 export async function getTenantBySubdomain(subdomain: string) {
   const sub = subdomain.toLowerCase();
   if (!sub) return null;
