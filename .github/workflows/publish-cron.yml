@@ -1,9 +1,10 @@
 name: Auto Publish Scheduled Posts
 
 on:
-  schedule:
-    # Every hour at minute 5
-    - cron: "5 * * * *"
+  # Scheduled trigger temporarily disabled.
+  # To resume hourly publishing, restore:
+  # schedule:
+  #   - cron: "5 * * * *"
   workflow_dispatch:
 
 jobs:
