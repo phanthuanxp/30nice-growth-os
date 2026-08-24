@@ -22,12 +22,14 @@ jobs:
           script: |
             set -e
 
-            SOURCE_DIR=/root/.openclaw/workspace/projects/30nice-growth-os
             PROD_DIR=/var/www/30nice-growth-os
-            echo "=== [1/4] Pull latest code ==="
-            cd "$SOURCE_DIR"
-            git fetch origin
-            git reset --hard origin/main
+            SOURCE_DIR="$(mktemp -d /tmp/30nice-growth-os.XXXXXX)"
+            trap 'rm -rf "$SOURCE_DIR"' EXIT
+
+            echo "=== [1/4] Checkout main into a temporary release directory ==="
+            git clone --depth 1 --branch main \
+              https://github.com/phanthuanxp/30nice-growth-os.git \
+              "$SOURCE_DIR"
 
             echo "=== [2/4] Sync source to production ==="
             rsync -av --delete \
