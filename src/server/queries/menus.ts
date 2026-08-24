@@ -1,7 +1,12 @@
 import { prisma } from "@/server/db";
-import type { TaxiNavItem } from "@/components/themes/taxi/types";
 
-export async function getHeaderNavItems(tenantId: string): Promise<TaxiNavItem[] | null> {
+export interface HeaderNavItem {
+  label: string;
+  href: string;
+  children?: { label: string; href: string }[];
+}
+
+export async function getHeaderNavItems(tenantId: string): Promise<HeaderNavItem[] | null> {
   try {
     const menu = await prisma.menu.findFirst({
       where: { tenantId, location: "header" },

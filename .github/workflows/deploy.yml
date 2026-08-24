@@ -24,14 +24,12 @@ jobs:
 
             SOURCE_DIR=/root/.openclaw/workspace/projects/30nice-growth-os
             PROD_DIR=/var/www/30nice-growth-os
-            APP_NAME=30nice-growth-os
-
-            echo "=== [1/5] Pull latest code ==="
+            echo "=== [1/4] Pull latest code ==="
             cd "$SOURCE_DIR"
             git fetch origin
             git reset --hard origin/main
 
-            echo "=== [2/5] Sync source to production ==="
+            echo "=== [2/4] Sync source to production ==="
             rsync -av --delete \
               --exclude='.git' \
               --exclude='node_modules' \
@@ -42,17 +40,12 @@ jobs:
               --exclude='30nice-upgrade-v2-full.tar.gz' \
               "$SOURCE_DIR/" "$PROD_DIR/"
 
-            echo "=== [3/5] Install dependencies ==="
+            echo "=== [3/4] Backup, migrate, build, and restart ==="
             cd "$PROD_DIR"
-            npm ci --include=dev
+            bash deploy/deploy.sh
 
-            echo "=== [4/5] Build ==="
-            npx prisma generate
-            npm run build
-
-            echo "=== [5/5] Restart PM2 ==="
-            pm2 reload "$APP_NAME" --update-env
-            pm2 save
-
-            echo "=== DEPLOY DONE ==="
-            pm2 status "$APP_NAME"
+            echo "=== [4/4] Health check ==="
+            curl --fail --silent --show-error \
+              --retry 12 --retry-delay 5 --retry-all-errors \
+              http://127.0.0.1:3001/login >/dev/null
+            echo "Health check passed: http://127.0.0.1:3001/login"
