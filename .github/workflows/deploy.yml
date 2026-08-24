@@ -78,7 +78,7 @@ jobs:
               http://127.0.0.1:3001/admin/dashboard)"
             if [ "$DASHBOARD_STATUS" != "200" ]; then
               echo "Authenticated dashboard health check failed with HTTP ${DASHBOARD_STATUS}." >&2
-              tail -n 160 /var/log/pm2/30nice-growth-os-error.log >&2 || true
+              pm2 logs 30nice-growth-os --lines 200 --nostream >&2 || true
               exit 1
             fi
             echo "Authenticated dashboard health check passed."
