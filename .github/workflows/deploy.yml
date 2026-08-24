@@ -47,15 +47,16 @@ jobs:
             bash deploy/deploy.sh
 
             echo "=== [4/4] Health checks ==="
-            curl --fail --silent --show-error \
-              --retry 12 --retry-delay 5 --retry-all-errors \
-              http://127.0.0.1:3001/login >/dev/null
-            echo "Public health check passed: http://127.0.0.1:3001/login"
-
             set -a
             # shellcheck disable=SC1091
             . ./.env
             set +a
+            APP_PORT="${PORT:-3001}"
+            curl --fail --silent --show-error \
+              --retry 12 --retry-delay 5 --retry-all-errors \
+              "http://127.0.0.1:${APP_PORT}/login" >/dev/null
+            echo "Public health check passed on port ${APP_PORT}."
+
             SMOKE_TOKEN="$(node <<'NODE'
             const { createHmac } = require("node:crypto");
             const user = {
@@ -75,7 +76,7 @@ jobs:
               --output /tmp/30nice-dashboard-smoke.html \
               --write-out '%{http_code}' \
               --header "Cookie: 30nice_session=${SMOKE_TOKEN}" \
-              http://127.0.0.1:3001/admin/dashboard)"
+              "http://127.0.0.1:${APP_PORT}/admin/dashboard")"
             if [ "$DASHBOARD_STATUS" != "200" ]; then
               echo "Authenticated dashboard health check failed with HTTP ${DASHBOARD_STATUS}." >&2
               pm2 logs 30nice-growth-os --lines 200 --nostream >&2 || true
