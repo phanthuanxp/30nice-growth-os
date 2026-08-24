@@ -40,13 +40,14 @@ async function main() {
       categories: true,
       mediaAssets: true,
       menus: { include: { items: true } },
-      leads: true,
+      formSubmissions: true,
       aiUsageLogs: true,
       seoAudits: true,
       integrations: true,
       automationJobs: true,
       analyticsEvents: true,
       members: true,
+      socialWorkspaces: true,
     },
   });
 
@@ -62,7 +63,7 @@ async function main() {
   console.log(`  - Categories:      ${tenant.categories.length}`);
   console.log(`  - Media:           ${tenant.mediaAssets.length}`);
   console.log(`  - Menus:           ${tenant.menus.length}`);
-  console.log(`  - Leads:           ${tenant.leads.length}`);
+  console.log(`  - Form submissions:${tenant.formSubmissions.length}`);
   console.log(`  - Domains:         ${tenant.domains.length}`);
   console.log(`  - Members:         ${tenant.members.length}`);
   console.log(`  - AnalyticsEvents: ${tenant.analyticsEvents.length}`);
@@ -71,6 +72,7 @@ async function main() {
   console.log(`  - Integrations:    ${tenant.integrations.length}`);
   console.log(`  - AutomationJobs:  ${tenant.automationJobs.length}`);
   console.log(`  - Settings:        ${tenant.settings ? "yes" : "no"}`);
+  console.log(`  - Social workspaces: ${tenant.socialWorkspaces.length}`);
 
   const backupDir = path.join(process.cwd(), ".backup-v2");
   if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });

@@ -193,6 +193,17 @@ Role checks via `can(role, minRole)` in `src/server/permissions/index.ts`.
 | WordPress importer (real) | Phase 2 |
 | Page block editor UI | Phase 2 |
 
+## Social Growth OS — Phase A
+
+The admin now includes a multi-tenant Social Growth OS foundation:
+
+- `/admin/social` — social portfolio dashboard
+- `/admin/social/pages` — Social Workspace and Page Factory
+- `/admin/social/planner` — 30-day content plans and approval workflow
+- `/admin/social/groups` — approved Group library with manual-safe defaults
+
+Apply the Prisma migration before using the module. To add optional demo Page data while seeding, set `SEED_SOCIAL_DEMO=true`. Meta OAuth and live publishing are intentionally deferred to later phases; Phase A never stores or requests Facebook credentials.
+
 ---
 
 ## Known Limitations (MVP)
