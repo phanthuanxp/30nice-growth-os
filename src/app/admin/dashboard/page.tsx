@@ -163,7 +163,6 @@ export default async function DashboardPage() {
               data={pageviewsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
               color="#4f46e5"
               height={110}
-              formatValue={(v) => `${v} views`}
             />
           </CardContent>
         </Card>
@@ -215,7 +214,6 @@ export default async function DashboardPage() {
               data={leadsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
               color="#7c3aed"
               height={80}
-              formatValue={(v) => `${v} leads`}
             />
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[
