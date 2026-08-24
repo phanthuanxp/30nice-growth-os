@@ -46,8 +46,39 @@ jobs:
             cd "$PROD_DIR"
             bash deploy/deploy.sh
 
-            echo "=== [4/4] Health check ==="
+            echo "=== [4/4] Health checks ==="
             curl --fail --silent --show-error \
               --retry 12 --retry-delay 5 --retry-all-errors \
               http://127.0.0.1:3001/login >/dev/null
-            echo "Health check passed: http://127.0.0.1:3001/login"
+            echo "Public health check passed: http://127.0.0.1:3001/login"
+
+            set -a
+            # shellcheck disable=SC1091
+            . ./.env
+            set +a
+            SMOKE_TOKEN="$(node <<'NODE'
+            const { createHmac } = require("node:crypto");
+            const user = {
+              id: "deploy-smoke-test",
+              name: "Deploy Smoke Test",
+              email: "deploy-smoke@30nice.vn",
+              role: "SUPER_ADMIN",
+            };
+            const payload = Buffer.from(JSON.stringify(user)).toString("base64url");
+            const signature = createHmac("sha256", process.env.SESSION_SECRET)
+              .update(payload)
+              .digest("base64url");
+            process.stdout.write(`${payload}.${signature}`);
+            NODE
+            )"
+            DASHBOARD_STATUS="$(curl --silent --show-error \
+              --output /tmp/30nice-dashboard-smoke.html \
+              --write-out '%{http_code}' \
+              --header "Cookie: 30nice_session=${SMOKE_TOKEN}" \
+              http://127.0.0.1:3001/admin/dashboard)"
+            if [ "$DASHBOARD_STATUS" != "200" ]; then
+              echo "Authenticated dashboard health check failed with HTTP ${DASHBOARD_STATUS}." >&2
+              tail -n 160 /var/log/pm2/30nice-growth-os-error.log >&2 || true
+              exit 1
+            fi
+            echo "Authenticated dashboard health check passed."
