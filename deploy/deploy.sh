@@ -23,12 +23,15 @@ if [ ! -f package.json ] || [ ! -f next.config.ts ]; then
 fi
 
 if [ -f .env ]; then
-  # shellcheck disable=SC2046
-  export $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env | sed 's/#.*//' | xargs) || true
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env
+  set +a
 fi
 
 if [ -z "${DATABASE_URL:-}" ]; then
-  echo "WARN: DATABASE_URL is not set. DB backup and migration status checks will be skipped."
+  echo "ERROR: DATABASE_URL is not set; refusing to deploy without a production DB backup and migration target." >&2
+  exit 1
 fi
 
 echo "=== [1/6] Backup source/env ==="
@@ -38,12 +41,8 @@ cp -a .env "${BACKUP_DIR}/.env.pre-deploy-${TS}" 2>/dev/null || true
 chmod 600 "${BACKUP_DIR}/.env.pre-deploy-${TS}" 2>/dev/null || true
 
 echo "=== [2/6] Backup database ==="
-if [ -n "${DATABASE_URL:-}" ]; then
-  pg_dump "${DATABASE_URL}" > "${BACKUP_DIR}/db-pre-deploy-${TS}.sql"
-  chmod 600 "${BACKUP_DIR}/db-pre-deploy-${TS}.sql"
-else
-  echo "Skipped DB backup because DATABASE_URL is missing."
-fi
+pg_dump "${DATABASE_URL}" > "${BACKUP_DIR}/db-pre-deploy-${TS}.sql"
+chmod 600 "${BACKUP_DIR}/db-pre-deploy-${TS}.sql"
 
 echo "=== [3/6] Install dependencies ==="
 # Build/typecheck need devDependencies such as @types/* even when NODE_ENV=production.
