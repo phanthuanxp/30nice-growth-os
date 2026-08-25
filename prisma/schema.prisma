@@ -524,6 +524,7 @@ model SocialPage {
   plans          SocialContentPlan[]
   contents       SocialContent[]
   publishTargets SocialPublishTarget[]
+  oauthSessions  MetaOAuthSession[]
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -629,25 +630,83 @@ model SocialGroup {
 }
 
 model SocialPublishTarget {
-  id              String                  @id @default(cuid())
-  socialContentId String
-  socialPageId    String
-  socialGroupId   String?
-  targetType      SocialPublishTargetType
-  captionOverride String?
-  scheduledAt     DateTime?
-  publishedAt     DateTime?
-  externalPostId  String?
-  status          SocialPublishStatus     @default(DRAFT)
-  errorMessage    String?
-  content         SocialContent           @relation(fields: [socialContentId], references: [id], onDelete: Cascade)
-  socialPage      SocialPage              @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
-  socialGroup     SocialGroup?            @relation(fields: [socialGroupId], references: [id], onDelete: SetNull)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  id               String                  @id @default(cuid())
+  socialContentId  String
+  socialPageId     String
+  socialGroupId    String?
+  targetType       SocialPublishTargetType
+  captionOverride  String?
+  scheduledAt      DateTime?
+  publishedAt      DateTime?
+  externalPostId   String?
+  status           SocialPublishStatus     @default(DRAFT)
+  errorMessage     String?
+  idempotencyKey   String                  @unique
+  attempts         Int                     @default(0)
+  maxAttempts      Int                     @default(3)
+  lastAttemptAt    DateTime?
+  nextAttemptAt    DateTime?
+  lockedAt         DateTime?
+  lockToken        String?
+  permanentFailure Boolean                 @default(false)
+  externalPostUrl  String?
+  responseMetadata Json?
+  content          SocialContent           @relation(fields: [socialContentId], references: [id], onDelete: Cascade)
+  socialPage       SocialPage              @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
+  socialGroup      SocialGroup?            @relation(fields: [socialGroupId], references: [id], onDelete: SetNull)
+  insight          SocialPostInsight?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
   @@index([socialPageId, status, scheduledAt])
   @@index([socialGroupId, status])
+  @@index([status, scheduledAt, nextAttemptAt])
+}
+
+model MetaOAuthSession {
+  id                  String     @id @default(cuid())
+  userId              String
+  socialPageId        String
+  availablePages      Json
+  encryptedPageTokens Json
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  socialPage          SocialPage @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
+  createdAt           DateTime   @default(now())
+
+  @@index([userId, expiresAt])
+  @@index([socialPageId, expiresAt])
+}
+
+model SocialPostInsight {
+  id              String              @id @default(cuid())
+  publishTargetId String              @unique
+  views           Int                 @default(0)
+  reach           Int                 @default(0)
+  engagements     Int                 @default(0)
+  reactions       Int                 @default(0)
+  comments        Int                 @default(0)
+  shares          Int                 @default(0)
+  rawMetrics      Json?
+  capturedAt      DateTime            @default(now())
+  publishTarget   SocialPublishTarget @relation(fields: [publishTargetId], references: [id], onDelete: Cascade)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([capturedAt])
+}
+
+model SocialWebhookEvent {
+  id             String    @id @default(cuid())
+  eventHash      String    @unique
+  externalPageId String?
+  field          String?
+  payload        Json
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([externalPageId, createdAt])
+  @@index([processedAt, createdAt])
 }
 
 model AiProviderConfig {

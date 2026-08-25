@@ -320,7 +320,9 @@ Quy tắc bắt buộc:
 ```env
 META_APP_ID=
 META_APP_SECRET=
-META_REDIRECT_URI=https://cms.30nice.vn/api/integrations/meta/callback
+META_GRAPH_VERSION=v25.0
+META_REDIRECT_URI=https://admin.30nice.vn/api/integrations/meta/callback
+META_WEBHOOK_VERIFY_TOKEN=
 TOKEN_ENCRYPTION_KEY=
 ```
 
@@ -460,4 +462,3 @@ Bắt đầu với Phase A. Trước hết hãy rà soát schema Prisma và các
 
 Yêu cầu: giữ multi-tenant isolation; TypeScript strict; validate bằng Zod; không thay đổi các module CMS/SEO hiện có; dùng UI components hiện có; chạy typecheck, lint và build trước khi kết thúc. Báo cáo rõ migration, route mới, UI mới và các điểm cần biến môi trường ở Phase C.
 ```
-

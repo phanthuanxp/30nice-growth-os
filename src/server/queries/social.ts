@@ -73,7 +73,7 @@ export async function getSocialPages(workspaceId?: string) {
     orderBy: { updatedAt: "desc" },
     include: {
       workspace: { include: { tenant: { select: { id: true, name: true } } } },
-      connection: { select: { connectionStatus: true, lastValidatedAt: true } },
+      connection: { select: { connectionStatus: true, lastValidatedAt: true, tokenExpiresAt: true, grantedScopes: true } },
       _count: { select: { plans: true, contents: true } },
     },
   });
@@ -126,6 +126,23 @@ export async function getSocialCalendar(input: { socialPageId?: string; from: Da
     orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
     include: { socialPage: { select: { id: true, name: true } }, plan: { select: { id: true, title: true } } },
   });
+}
+
+export async function getSocialPublishing(socialPageId?: string) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  const targets = await prisma.socialPublishTarget.findMany({
+    where: { socialPageId: socialPageId || undefined, targetType: "PAGE", socialPage: { workspace: { tenant: tenantWhere } } },
+    orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
+    take: 200,
+    include: {
+      content: { select: { id: true, title: true, topic: true, status: true } },
+      socialPage: { select: { id: true, name: true, status: true, externalPageId: true, connection: { select: { connectionStatus: true } } } },
+      insight: true,
+    },
+  });
+  const counts = Object.fromEntries(["SCHEDULED", "PUBLISHED", "FAILED"].map((status) => [status, targets.filter((target) => target.status === status).length]));
+  return { targets, counts };
 }
 
 export async function getSocialGroups(workspaceId?: string) {

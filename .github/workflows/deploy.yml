@@ -76,7 +76,8 @@ jobs:
               /admin/dashboard \
               /admin/social \
               /admin/social/planner \
-              /admin/social/calendar
+              /admin/social/calendar \
+              /admin/social/publishing
             do
               SAFE_NAME="$(printf '%s' "$ADMIN_PATH" | tr '/' '-')"
               ADMIN_STATUS="$(curl --silent --show-error \
