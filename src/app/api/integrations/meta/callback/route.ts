@@ -6,18 +6,19 @@ import { requireTenantAccess } from "@/server/permissions/guard";
 import { encryptToken } from "@/server/crypto/token-vault";
 import { exchangeMetaCode, listMetaManagedPages } from "@/server/meta/client";
 import { openMetaOauthState } from "@/server/meta/oauth-state";
+import { adminPublicUrl } from "@/server/http/public-url";
 
 export const dynamic = "force-dynamic";
 
 function errorRedirect(request: NextRequest, message: string) {
-  const response = NextResponse.redirect(new URL(`/admin/social/pages?metaError=${encodeURIComponent(message.slice(0, 300))}`, request.url));
+  const response = NextResponse.redirect(adminPublicUrl(`/admin/social/pages?metaError=${encodeURIComponent(message.slice(0, 300))}`));
   response.cookies.delete("30nice_meta_oauth");
   return response;
 }
 
 export async function GET(request: NextRequest) {
   const user = await getSession();
-  if (!user) return NextResponse.redirect(new URL("/login", request.url));
+  if (!user) return NextResponse.redirect(adminPublicUrl("/login"));
   const errorDescription = request.nextUrl.searchParams.get("error_description");
   if (errorDescription) return errorRedirect(request, errorDescription);
   const code = request.nextUrl.searchParams.get("code");
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
       },
     });
     await prisma.metaOAuthSession.deleteMany({ where: { expiresAt: { lt: new Date() } } });
-    const response = NextResponse.redirect(new URL(`/admin/social/pages/connect?sessionId=${oauthSession.id}`, request.url));
+    const response = NextResponse.redirect(adminPublicUrl(`/admin/social/pages/connect?sessionId=${oauthSession.id}`));
     response.cookies.delete("30nice_meta_oauth");
     return response;
   } catch (error) {
