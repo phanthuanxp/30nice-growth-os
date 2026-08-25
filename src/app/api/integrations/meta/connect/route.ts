@@ -6,16 +6,17 @@ import { requireTenantAccess } from "@/server/permissions/guard";
 import { tokenVaultConfigured } from "@/server/crypto/token-vault";
 import { buildMetaAuthorizeUrl, getMetaConfig } from "@/server/meta/client";
 import { sealMetaOauthState } from "@/server/meta/oauth-state";
+import { adminPublicUrl } from "@/server/http/public-url";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const user = await getSession();
-  if (!user) return NextResponse.redirect(new URL("/login", request.url));
+  if (!user) return NextResponse.redirect(adminPublicUrl("/login"));
   const socialPageId = request.nextUrl.searchParams.get("pageId");
-  if (!socialPageId) return NextResponse.redirect(new URL("/admin/social/pages?metaError=missing_page", request.url));
+  if (!socialPageId) return NextResponse.redirect(adminPublicUrl("/admin/social/pages?metaError=missing_page"));
   const page = await prisma.socialPage.findUnique({ where: { id: socialPageId }, include: { workspace: { select: { tenantId: true } } } });
-  if (!page) return NextResponse.redirect(new URL("/admin/social/pages?metaError=page_not_found", request.url));
+  if (!page) return NextResponse.redirect(adminPublicUrl("/admin/social/pages?metaError=page_not_found"));
   try {
     await requireTenantAccess(page.workspace.tenantId, "TENANT_ADMIN");
     getMetaConfig();
@@ -33,6 +34,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "meta_not_configured";
-    return NextResponse.redirect(new URL(`/admin/social/pages?metaError=${encodeURIComponent(message)}`, request.url));
+    return NextResponse.redirect(adminPublicUrl(`/admin/social/pages?metaError=${encodeURIComponent(message)}`));
   }
 }
