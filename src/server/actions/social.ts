@@ -394,6 +394,10 @@ export async function updateSocialContentAction(_prev: SocialActionResult, formD
         approvedById: null,
       },
     }),
+    prisma.socialPublishTarget.updateMany({
+      where: { socialContentId: content.id, status: { not: "PUBLISHED" } },
+      data: { status: "DRAFT", errorMessage: "Nội dung đã được chỉnh sửa và cần duyệt lại", permanentFailure: false, lockedAt: null, lockToken: null },
+    }),
   ]);
   await writeAuditLog({ userId: user.id, tenantId: content.socialPage.workspace.tenantId, action: "social.content.edit", resource: "SocialContent", resourceId: content.id, metadata: { version: content._count.revisions + 1 } });
   revalidateSocial();
@@ -420,7 +424,30 @@ export async function scheduleSocialContentAction(contentId: string): Promise<vo
   if (content.status !== "APPROVED") throw new Error("Chỉ bài đã duyệt mới được hẹn lịch");
   if (!content.scheduledAt) throw new Error("Bài chưa có ngày giờ đăng");
   const user = await requireTenantAccess(content.socialPage.workspace.tenantId, "TENANT_ADMIN");
-  await prisma.socialContent.update({ where: { id: content.id }, data: { status: "SCHEDULED" } });
+  await prisma.$transaction([
+    prisma.socialContent.update({ where: { id: content.id }, data: { status: "SCHEDULED" } }),
+    prisma.socialPublishTarget.upsert({
+      where: { idempotencyKey: `page:${content.id}` },
+      create: {
+        socialContentId: content.id,
+        socialPageId: content.socialPageId,
+        targetType: "PAGE",
+        scheduledAt: content.scheduledAt,
+        status: "SCHEDULED",
+        idempotencyKey: `page:${content.id}`,
+      },
+      update: {
+        scheduledAt: content.scheduledAt,
+        status: "SCHEDULED",
+        attempts: 0,
+        nextAttemptAt: null,
+        errorMessage: null,
+        permanentFailure: false,
+        lockedAt: null,
+        lockToken: null,
+      },
+    }),
+  ]);
   await writeAuditLog({ userId: user.id, tenantId: content.socialPage.workspace.tenantId, action: "social.content.schedule", resource: "SocialContent", resourceId: content.id, metadata: { scheduledAt: content.scheduledAt.toISOString() } });
   revalidateSocial();
 }
@@ -433,10 +460,16 @@ export async function updateSocialContentStatusAction(contentId: string, status:
   if (!content) throw new Error("Không tìm thấy nội dung");
   const minRole = status === "IN_REVIEW" ? "EDITOR" : "TENANT_ADMIN";
   const user = await requireTenantAccess(content.socialPage.workspace.tenantId, minRole);
-  await prisma.socialContent.update({
-    where: { id: contentId },
-    data: { status, approvedAt: status === "APPROVED" ? new Date() : null, approvedById: status === "APPROVED" ? user.id : null },
-  });
+  await prisma.$transaction([
+    prisma.socialContent.update({
+      where: { id: contentId },
+      data: { status, approvedAt: status === "APPROVED" ? new Date() : null, approvedById: status === "APPROVED" ? user.id : null },
+    }),
+    prisma.socialPublishTarget.updateMany({
+      where: { socialContentId: contentId, status: { not: "PUBLISHED" } },
+      data: { status: status === "SKIPPED" ? "SKIPPED" : status === "APPROVED" ? "PENDING_APPROVAL" : "DRAFT", lockedAt: null, lockToken: null },
+    }),
+  ]);
   await writeAuditLog({ userId: user.id, tenantId: content.socialPage.workspace.tenantId, action: "social.content.status", resource: "SocialContent", resourceId: contentId, metadata: { status } });
   revalidatePath("/admin/social");
   revalidatePath("/admin/social/planner");

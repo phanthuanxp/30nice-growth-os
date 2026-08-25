@@ -1,0 +1,21 @@
+name: Social Post Insights
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  insights:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Facebook Page post insights
+        run: |
+          HTTP_STATUS="$(curl --silent --show-error \
+            --output /tmp/social-insights.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://admin.30nice.vn/api/cron/social-insights)"
+          cat /tmp/social-insights.json
+          test "$HTTP_STATUS" = "200"

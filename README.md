@@ -216,6 +216,19 @@ Phase B adds the editorial operating system on top of the Phase A foundation:
 
 AI generation uses the existing provider configuration under `/admin/settings/ai`; no provider key is stored in Social records. Facebook OAuth, live Page publishing and Group distribution remain deferred to Phase C so production publishing cannot occur without explicit Meta permissions and approval controls.
 
+## Social Growth OS — Phase C
+
+Phase C adds official Facebook Page connectivity and publishing:
+
+- Meta OAuth with signed, expiring state and explicit Page selection
+- AES-256-GCM encrypted Page access tokens; tokens never reach the browser or logs
+- permission validation and Page webhook subscription
+- idempotent Page publish targets with bounded retry, lock recovery and audit logs
+- `/admin/social/publishing` queue with manual retry, published links and basic engagement counts
+- signed Meta webhook ingestion and scheduled insight synchronization
+
+Required production variables are documented in `deploy/env.production.example`. Publishing remains fail-closed until the Meta App credentials, webhook verify token and token encryption key are configured. Group automation is not part of Phase C; Group distribution stays manual-safe until Phase D.
+
 ---
 
 ## Known Limitations (MVP)

@@ -76,6 +76,7 @@ const NAV: NavGroup[] = [
       { label: "Page Factory", href: "/admin/social/pages", icon: Flag },
       { label: "Kế hoạch nội dung", href: "/admin/social/planner", icon: Calendar },
       { label: "Lịch Social", href: "/admin/social/calendar", icon: Calendar },
+      { label: "Publisher", href: "/admin/social/publishing", icon: UploadCloud },
       { label: "Group Library", href: "/admin/social/groups", icon: UsersRound },
     ],
   },
