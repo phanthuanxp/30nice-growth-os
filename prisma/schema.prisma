@@ -566,31 +566,46 @@ model SocialContentPlan {
 }
 
 model SocialContent {
-  id             String                @id @default(cuid())
+  id             String                  @id @default(cuid())
   planId         String?
   socialPageId   String
   topic          String
   pillar         String?
-  format         String                @default("POST")
+  format         String                  @default("POST")
   title          String?
   hook           String?
   caption        String?
   callToAction   String?
   hashtags       String[]
   mediaBrief     Json?
-  status         SocialContentStatus   @default(IDEA)
+  status         SocialContentStatus     @default(IDEA)
   scheduledAt    DateTime?
   approvedAt     DateTime?
   approvedById   String?
   sourcePostId   String?
-  plan           SocialContentPlan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
-  socialPage     SocialPage            @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
+  plan           SocialContentPlan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
+  socialPage     SocialPage              @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
   publishTargets SocialPublishTarget[]
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  revisions      SocialContentRevision[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   @@index([socialPageId, status, scheduledAt])
   @@index([planId])
+}
+
+model SocialContentRevision {
+  id              String        @id @default(cuid())
+  socialContentId String
+  version         Int
+  snapshot        Json
+  changeNote      String?
+  createdById     String?
+  content         SocialContent @relation(fields: [socialContentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([socialContentId, version])
+  @@index([socialContentId, createdAt])
 }
 
 model SocialGroup {

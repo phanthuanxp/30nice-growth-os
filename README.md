@@ -204,6 +204,18 @@ The admin now includes a multi-tenant Social Growth OS foundation:
 
 Apply the Prisma migration before using the module. To add optional demo Page data while seeding, set `SEED_SOCIAL_DEMO=true`. Meta OAuth and live publishing are intentionally deferred to later phases; Phase A never stores or requests Facebook credentials.
 
+## Social Growth OS — Phase B
+
+Phase B adds the editorial operating system on top of the Phase A foundation:
+
+- AI-generated Page strategy with positioning, audience, brand voice and content pillars
+- AI-generated 30-day plan with complete captions, hooks, CTAs, hashtags and media briefs
+- Per-post editor with revision history
+- Draft → review → approval → scheduling workflow, including bulk plan actions
+- Multi-Page monthly calendar at `/admin/social/calendar`
+
+AI generation uses the existing provider configuration under `/admin/settings/ai`; no provider key is stored in Social records. Facebook OAuth, live Page publishing and Group distribution remain deferred to Phase C so production publishing cannot occur without explicit Meta permissions and approval controls.
+
 ---
 
 ## Known Limitations (MVP)

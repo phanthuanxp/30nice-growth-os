@@ -72,14 +72,22 @@ jobs:
             process.stdout.write(`${payload}.${signature}`);
             NODE
             )"
-            DASHBOARD_STATUS="$(curl --silent --show-error \
-              --output /tmp/30nice-dashboard-smoke.html \
-              --write-out '%{http_code}' \
-              --header "Cookie: 30nice_session=${SMOKE_TOKEN}" \
-              "http://127.0.0.1:${APP_PORT}/admin/dashboard")"
-            if [ "$DASHBOARD_STATUS" != "200" ]; then
-              echo "Authenticated dashboard health check failed with HTTP ${DASHBOARD_STATUS}." >&2
-              pm2 logs 30nice-growth-os --lines 200 --nostream >&2 || true
-              exit 1
-            fi
-            echo "Authenticated dashboard health check passed."
+            for ADMIN_PATH in \
+              /admin/dashboard \
+              /admin/social \
+              /admin/social/planner \
+              /admin/social/calendar
+            do
+              SAFE_NAME="$(printf '%s' "$ADMIN_PATH" | tr '/' '-')"
+              ADMIN_STATUS="$(curl --silent --show-error \
+                --output "/tmp/30nice-${SAFE_NAME}-smoke.html" \
+                --write-out '%{http_code}' \
+                --header "Cookie: 30nice_session=${SMOKE_TOKEN}" \
+                "http://127.0.0.1:${APP_PORT}${ADMIN_PATH}")"
+              if [ "$ADMIN_STATUS" != "200" ]; then
+                echo "Authenticated health check for ${ADMIN_PATH} failed with HTTP ${ADMIN_STATUS}." >&2
+                pm2 logs 30nice-growth-os --lines 200 --nostream >&2 || true
+                exit 1
+              fi
+              echo "Authenticated health check passed for ${ADMIN_PATH}."
+            done

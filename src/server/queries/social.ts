@@ -96,6 +96,38 @@ export async function getSocialPlans(socialPageId?: string) {
   });
 }
 
+export async function getSocialContent(contentId: string) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  return prisma.socialContent.findFirst({
+    where: { id: contentId, socialPage: { workspace: { tenant: tenantWhere } } },
+    include: {
+      socialPage: {
+        include: {
+          workspace: { select: { id: true, name: true, tenant: { select: { id: true, name: true } } } },
+        },
+      },
+      plan: { select: { id: true, title: true } },
+      revisions: { orderBy: { createdAt: "desc" }, take: 10 },
+    },
+  });
+}
+
+export async function getSocialCalendar(input: { socialPageId?: string; from: Date; to: Date }) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  return prisma.socialContent.findMany({
+    where: {
+      socialPageId: input.socialPageId || undefined,
+      socialPage: { workspace: { tenant: tenantWhere } },
+      scheduledAt: { gte: input.from, lt: input.to },
+      status: { not: "SKIPPED" },
+    },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
+    include: { socialPage: { select: { id: true, name: true } }, plan: { select: { id: true, title: true } } },
+  });
+}
+
 export async function getSocialGroups(workspaceId?: string) {
   const user = await requireAuth();
   const tenantWhere = accessibleTenantWhere(user.id, user.role);
