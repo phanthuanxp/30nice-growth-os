@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { requireTenantAccess } from "@/server/permissions/guard";
 import { writeAuditLog } from "@/server/audit/log";
+import { generateSocialPlan, generateSocialStrategy } from "@/server/social/ai";
 
 export type SocialActionResult = { ok: boolean; error?: string; id?: string };
 
@@ -37,6 +39,35 @@ const groupSchema = z.object({
   topics: z.string().trim().max(500).optional(),
   rules: z.string().trim().max(2000).optional(),
 });
+
+const contentEditSchema = z.object({
+  contentId: z.string().min(1),
+  topic: z.string().trim().min(5, "Chủ đề quá ngắn").max(240),
+  title: z.string().trim().min(5, "Tiêu đề quá ngắn").max(240),
+  hook: z.string().trim().max(500).optional(),
+  caption: z.string().trim().min(20, "Caption cần ít nhất 20 ký tự").max(5000),
+  callToAction: z.string().trim().max(500).optional(),
+  hashtags: z.string().trim().max(1000).optional(),
+  format: z.enum(["POST", "CAROUSEL", "REEL", "STORY"]),
+  scheduledAt: z.string().max(40).optional().refine((value) => !value || !Number.isNaN(new Date(`${value}:00+07:00`).getTime()), "Ngày giờ không hợp lệ"),
+  mediaConcept: z.string().trim().max(1200).optional(),
+  visualStyle: z.string().trim().max(600).optional(),
+  onImageText: z.string().trim().max(240).optional(),
+  aspectRatio: z.enum(["1:1", "4:5", "9:16", "16:9"]),
+  changeNote: z.string().trim().max(500).optional(),
+});
+
+function jsonObject(value: Prisma.JsonValue | null): Record<string, Prisma.JsonValue> {
+  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, Prisma.JsonValue>;
+  return {};
+}
+
+function revalidateSocial() {
+  revalidatePath("/admin/social");
+  revalidatePath("/admin/social/pages");
+  revalidatePath("/admin/social/planner");
+  revalidatePath("/admin/social/calendar");
+}
 
 function slugify(value: string) {
   return value
@@ -158,6 +189,54 @@ export async function createSocialPageAction(_prev: SocialActionResult, formData
   return { ok: true, id: page.id };
 }
 
+export async function generateSocialPageStrategyAction(pageId: string): Promise<SocialActionResult> {
+  const page = await prisma.socialPage.findUnique({
+    where: { id: pageId },
+    include: { workspace: { select: { tenantId: true, locale: true } } },
+  });
+  if (!page) return { ok: false, error: "Không tìm thấy Page" };
+  const user = await requireTenantAccess(page.workspace.tenantId, "TENANT_ADMIN");
+
+  try {
+    const { strategy, provider } = await generateSocialStrategy({
+      pageName: page.name,
+      category: page.category || "thương hiệu",
+      objective: page.objective || "xây dựng Page bền vững",
+      audience: page.targetAudience,
+      brandVoice: page.brandVoice,
+      locale: page.workspace.locale,
+    });
+    const currentKit = jsonObject(page.launchKit);
+    await prisma.socialPage.update({
+      where: { id: page.id },
+      data: {
+        targetAudience: strategy.audience,
+        brandVoice: strategy.brandVoice,
+        contentPillars: strategy.pillars,
+        postingRules: { approvalRequired: true, maxPostsPerDay: 2, contentRules: strategy.contentRules },
+        launchKit: {
+          ...currentKit,
+          positioning: strategy.positioning,
+          promise: strategy.promise,
+          description: strategy.description,
+          pillars: strategy.pillars,
+          visualDirection: strategy.visualDirection,
+          usernameSuggestions: strategy.usernameSuggestions,
+          aiProvider: provider,
+          aiGeneratedAt: new Date().toISOString(),
+          approvalMode: "REQUIRED",
+        },
+        status: "SETUP",
+      },
+    });
+    await writeAuditLog({ userId: user.id, tenantId: page.workspace.tenantId, action: "social.page.ai_strategy", resource: "SocialPage", resourceId: page.id, metadata: { provider } });
+    revalidateSocial();
+    return { ok: true, id: page.id };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Không thể tạo chiến lược AI" };
+  }
+}
+
 export async function createSocialPlanAction(_prev: SocialActionResult, formData: FormData): Promise<SocialActionResult> {
   const parsed = planSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -192,7 +271,161 @@ export async function createSocialPlanAction(_prev: SocialActionResult, formData
   return { ok: true, id: plan.id };
 }
 
-export async function updateSocialContentStatusAction(contentId: string, status: "IN_REVIEW" | "APPROVED" | "SKIPPED"): Promise<void> {
+export async function generateSocialPlanDraftsAction(planId: string): Promise<SocialActionResult> {
+  const contentPlan = await prisma.socialContentPlan.findUnique({
+    where: { id: planId },
+    include: {
+      workspace: { select: { tenantId: true, locale: true } },
+      socialPage: true,
+      contents: { orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }] },
+    },
+  });
+  if (!contentPlan) return { ok: false, error: "Không tìm thấy kế hoạch" };
+  if (contentPlan.contents.length !== 30) return { ok: false, error: "Kế hoạch cần đúng 30 nội dung trước khi chạy AI" };
+  const user = await requireTenantAccess(contentPlan.workspace.tenantId, "EDITOR");
+
+  try {
+    const { plan, provider } = await generateSocialPlan({
+      pageName: contentPlan.socialPage.name,
+      category: contentPlan.socialPage.category || "thương hiệu",
+      objective: contentPlan.socialPage.objective || "xây dựng Page bền vững",
+      targetAudience: contentPlan.socialPage.targetAudience,
+      brandVoice: contentPlan.socialPage.brandVoice,
+      contentPillars: contentPlan.socialPage.contentPillars,
+      launchKit: contentPlan.socialPage.launchKit,
+      campaignObjective: contentPlan.objective || contentPlan.title,
+      language: contentPlan.workspace.locale,
+    });
+    const sortedItems = [...plan.items].sort((a, b) => a.day - b.day);
+    await prisma.$transaction([
+      ...contentPlan.contents.map((content, index) => {
+        const generated = sortedItems[index];
+        return prisma.socialContent.update({
+          where: { id: content.id },
+          data: {
+            pillar: generated.pillar,
+            format: generated.format,
+            topic: generated.topic,
+            title: generated.title,
+            hook: generated.hook,
+            caption: generated.caption,
+            callToAction: generated.callToAction,
+            hashtags: generated.hashtags.map((tag) => tag.startsWith("#") ? tag : `#${tag.replace(/\s+/g, "")}`),
+            mediaBrief: generated.mediaBrief,
+            status: "DRAFT",
+          },
+        });
+      }),
+      prisma.socialContentPlan.update({
+        where: { id: contentPlan.id },
+        data: {
+          status: "ACTIVE",
+          strategy: {
+            ...plan.strategy,
+            durationDays: 30,
+            approvalRequired: true,
+            timezone: "Asia/Bangkok",
+            aiProvider: provider,
+            aiGeneratedAt: new Date().toISOString(),
+          },
+        },
+      }),
+    ]);
+    await writeAuditLog({ userId: user.id, tenantId: contentPlan.workspace.tenantId, action: "social.plan.ai_generate", resource: "SocialContentPlan", resourceId: contentPlan.id, metadata: { provider, items: 30 } });
+    revalidateSocial();
+    return { ok: true, id: contentPlan.id };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Không thể tạo kế hoạch AI" };
+  }
+}
+
+export async function updateSocialContentAction(_prev: SocialActionResult, formData: FormData): Promise<SocialActionResult> {
+  const parsed = contentEditSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
+  const content = await prisma.socialContent.findUnique({
+    where: { id: parsed.data.contentId },
+    include: { socialPage: { include: { workspace: { select: { tenantId: true } } } }, _count: { select: { revisions: true } } },
+  });
+  if (!content) return { ok: false, error: "Không tìm thấy nội dung" };
+  const user = await requireTenantAccess(content.socialPage.workspace.tenantId, "EDITOR");
+  const hashtags = (parsed.data.hashtags || "").split(/[\s,]+/).map((tag) => tag.trim()).filter(Boolean).map((tag) => tag.startsWith("#") ? tag : `#${tag}`);
+  const snapshot = JSON.parse(JSON.stringify({
+    topic: content.topic,
+    title: content.title,
+    hook: content.hook,
+    caption: content.caption,
+    callToAction: content.callToAction,
+    hashtags: content.hashtags,
+    mediaBrief: content.mediaBrief,
+    format: content.format,
+    status: content.status,
+    scheduledAt: content.scheduledAt?.toISOString() || null,
+  })) as Prisma.InputJsonValue;
+
+  await prisma.$transaction([
+    prisma.socialContentRevision.create({
+      data: {
+        socialContentId: content.id,
+        version: content._count.revisions + 1,
+        snapshot,
+        changeNote: parsed.data.changeNote || "Cập nhật nội dung",
+        createdById: user.id,
+      },
+    }),
+    prisma.socialContent.update({
+      where: { id: content.id },
+      data: {
+        topic: parsed.data.topic,
+        title: parsed.data.title,
+        hook: parsed.data.hook || null,
+        caption: parsed.data.caption,
+        callToAction: parsed.data.callToAction || null,
+        hashtags,
+        format: parsed.data.format,
+        scheduledAt: parsed.data.scheduledAt ? new Date(`${parsed.data.scheduledAt}:00+07:00`) : null,
+        mediaBrief: {
+          concept: parsed.data.mediaConcept || "",
+          visualStyle: parsed.data.visualStyle || "",
+          onImageText: parsed.data.onImageText || "",
+          aspectRatio: parsed.data.aspectRatio,
+        },
+        status: "DRAFT",
+        approvedAt: null,
+        approvedById: null,
+      },
+    }),
+  ]);
+  await writeAuditLog({ userId: user.id, tenantId: content.socialPage.workspace.tenantId, action: "social.content.edit", resource: "SocialContent", resourceId: content.id, metadata: { version: content._count.revisions + 1 } });
+  revalidateSocial();
+  revalidatePath(`/admin/social/planner/${content.id}`);
+  return { ok: true, id: content.id };
+}
+
+export async function bulkUpdateSocialPlanStatusAction(planId: string, status: "IN_REVIEW" | "APPROVED"): Promise<void> {
+  const contentPlan = await prisma.socialContentPlan.findUnique({ where: { id: planId }, include: { workspace: { select: { tenantId: true } } } });
+  if (!contentPlan) throw new Error("Không tìm thấy kế hoạch");
+  const user = await requireTenantAccess(contentPlan.workspace.tenantId, status === "APPROVED" ? "TENANT_ADMIN" : "EDITOR");
+  const eligible = status === "IN_REVIEW" ? ["IDEA", "DRAFT"] as const : ["IN_REVIEW"] as const;
+  const result = await prisma.socialContent.updateMany({
+    where: { planId, status: { in: [...eligible] } },
+    data: { status, approvedAt: status === "APPROVED" ? new Date() : null, approvedById: status === "APPROVED" ? user.id : null },
+  });
+  await writeAuditLog({ userId: user.id, tenantId: contentPlan.workspace.tenantId, action: "social.plan.bulk_status", resource: "SocialContentPlan", resourceId: planId, metadata: { status, count: result.count } });
+  revalidateSocial();
+}
+
+export async function scheduleSocialContentAction(contentId: string): Promise<void> {
+  const content = await prisma.socialContent.findUnique({ where: { id: contentId }, include: { socialPage: { include: { workspace: { select: { tenantId: true } } } } } });
+  if (!content) throw new Error("Không tìm thấy nội dung");
+  if (content.status !== "APPROVED") throw new Error("Chỉ bài đã duyệt mới được hẹn lịch");
+  if (!content.scheduledAt) throw new Error("Bài chưa có ngày giờ đăng");
+  const user = await requireTenantAccess(content.socialPage.workspace.tenantId, "TENANT_ADMIN");
+  await prisma.socialContent.update({ where: { id: content.id }, data: { status: "SCHEDULED" } });
+  await writeAuditLog({ userId: user.id, tenantId: content.socialPage.workspace.tenantId, action: "social.content.schedule", resource: "SocialContent", resourceId: content.id, metadata: { scheduledAt: content.scheduledAt.toISOString() } });
+  revalidateSocial();
+}
+
+export async function updateSocialContentStatusAction(contentId: string, status: "DRAFT" | "IN_REVIEW" | "APPROVED" | "SKIPPED"): Promise<void> {
   const content = await prisma.socialContent.findUnique({
     where: { id: contentId },
     include: { socialPage: { include: { workspace: { select: { tenantId: true } } } } },

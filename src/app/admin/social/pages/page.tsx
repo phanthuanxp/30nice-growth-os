@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Flag, Layers3, Rocket, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { SocialPageForm, SocialWorkspaceForm, EmptySocialFormNotice } from "@/components/admin/social-forms";
+import { SocialStrategyAiButton } from "@/components/admin/social-ai-actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getSocialPages, getSocialTenants } from "@/server/queries/social";
 
 export const metadata: Metadata = { title: "Page Factory" };
 
-type LaunchKit = { positioning?: string; description?: string; usernameSuggestion?: string; pillars?: { key: string; label: string; ratio: number }[] };
+type LaunchKit = { positioning?: string; promise?: string; description?: string; usernameSuggestion?: string; usernameSuggestions?: string[]; pillars?: { key: string; label: string; ratio: number }[] };
 
 export default async function SocialPagesPage() {
   const [tenants, pages] = await Promise.all([getSocialTenants(), getSocialPages()]);
@@ -42,9 +43,11 @@ export default async function SocialPagesPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm leading-6 text-slate-600">{kit.positioning || page.objective}</p>
+                {kit.promise && <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3"><p className="text-xs font-semibold text-indigo-600">Lời hứa giá trị</p><p className="mt-1 text-sm text-indigo-900">{kit.promise}</p></div>}
                 <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs font-semibold text-slate-500">Mô tả đề xuất</p><p className="mt-1 text-sm text-slate-700">{kit.description || "Chưa có mô tả"}</p></div>
                 <div className="flex flex-wrap gap-2">{kit.pillars?.map((pillar) => <Badge key={pillar.key} variant="info">{pillar.label} · {pillar.ratio}%</Badge>)}</div>
-                <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500"><span>@{kit.usernameSuggestion || page.slug}</span><span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />Duyệt trước khi đăng</span></div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500"><span>@{kit.usernameSuggestions?.[0] || kit.usernameSuggestion || page.slug}</span><span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />Duyệt trước khi đăng</span></div>
+                <SocialStrategyAiButton pageId={page.id} />
               </CardContent>
             </Card>
           );

@@ -75,6 +75,7 @@ const NAV: NavGroup[] = [
       { label: "Tổng quan Social", href: "/admin/social", icon: Share2, badge: "New" },
       { label: "Page Factory", href: "/admin/social/pages", icon: Flag },
       { label: "Kế hoạch nội dung", href: "/admin/social/planner", icon: Calendar },
+      { label: "Lịch Social", href: "/admin/social/calendar", icon: Calendar },
       { label: "Group Library", href: "/admin/social/groups", icon: UsersRound },
     ],
   },
