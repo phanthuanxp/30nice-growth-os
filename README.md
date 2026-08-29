@@ -95,6 +95,7 @@ Open [http://localhost:3000](http://localhost:3000) — redirects to `/admin/das
 | `npm run build` | Production build |
 | `npm run typecheck` | TypeScript type check |
 | `npm run lint` | ESLint |
+| `npm test` | Unit tests (`node --test` over `tests/`) |
 | `npm run db:push` | Push Prisma schema to DB |
 | `npm run db:migrate` | Create migration |
 | `npm run prisma:generate` | Regenerate Prisma client |
@@ -135,7 +136,12 @@ src/
 │   ├── public/            # PageRenderer (block-based)
 │   └── ui/                # Button, Badge, Card, Input, Table, Select
 ├── server/
-│   ├── auth/session.ts    # HMAC cookie session
+│   ├── auth/session.ts    # HMAC cookie session (expiring, signed)
+│   ├── auth/token.ts      # Pure token sign/verify
+│   ├── auth/rate-limit.ts # Login throttling
+│   ├── http/cron-auth.ts  # Shared cron secret check
+│   ├── http/host-rules.ts # Proxy host/path rules
+│   ├── media/paths.ts     # Upload path containment
 │   ├── db/index.ts        # Prisma singleton
 │   ├── importers/         # WordPress import placeholders
 │   ├── permissions/       # Role rank helpers

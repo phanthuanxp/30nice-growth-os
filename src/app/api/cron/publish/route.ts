@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
-
-function authorized(req: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) return process.env.NODE_ENV !== "production";
-  return req.headers.get("x-cron-secret") === expected;
-}
+import { isAuthorizedCronRequest } from "@/server/http/cron-auth";
 
 export async function POST(req: NextRequest) {
-  if (!authorized(req)) {
+  if (!isAuthorizedCronRequest(req.headers)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -3,26 +3,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit/log";
 import { decryptToken } from "@/server/crypto/token-vault";
-import { getMetaPostMetrics, MetaApiError, publishMetaPagePost } from "@/server/meta/client";
+import { getMetaPostMetrics, publishMetaPagePost } from "@/server/meta/client";
+import { buildPostMessage, classifyMetaFailure, metaPostUrl, nextRetryAt } from "@/server/social/publish-rules";
 
 type PublishResult = { targetId: string; status: "PUBLISHED" | "FAILED" | "SKIPPED"; externalPostId?: string; error?: string };
-
-function postMessage(content: { caption: string | null; callToAction: string | null; hashtags: string[] }) {
-  return [content.caption?.trim(), content.callToAction?.trim(), content.hashtags.join(" ")].filter(Boolean).join("\n\n").trim();
-}
-
-function classifyMetaFailure(error: unknown) {
-  if (!(error instanceof MetaApiError)) return { permanent: true, code: null, message: "Lỗi publisher không xác định" };
-  const retryableCodes = new Set([1, 2, 4, 17, 32, 613]);
-  const permanentCodes = new Set([10, 100, 190, 200]);
-  const permanent = error.code === undefined || permanentCodes.has(error.code) || !retryableCodes.has(error.code);
-  return { permanent, code: error.code ?? null, message: error.message.slice(0, 1000), traceId: error.traceId };
-}
-
-function retryAt(attempt: number) {
-  const minutes = Math.min(60, 2 ** Math.max(1, attempt));
-  return new Date(Date.now() + minutes * 60_000);
-}
 
 async function processClaimedTarget(targetId: string, lockToken: string): Promise<PublishResult> {
   const target = await prisma.socialPublishTarget.findFirst({
@@ -39,7 +23,7 @@ async function processClaimedTarget(targetId: string, lockToken: string): Promis
         status: "FAILED",
         errorMessage: message,
         permanentFailure: permanent || exhausted,
-        nextAttemptAt: permanent || exhausted ? null : retryAt(target.attempts),
+        nextAttemptAt: permanent || exhausted ? null : nextRetryAt(target.attempts),
         lockedAt: null,
         lockToken: null,
         responseMetadata: { errorCode: code, traceId: traceId || null, ambiguousNetworkResult: code === null },
@@ -57,14 +41,14 @@ async function processClaimedTarget(targetId: string, lockToken: string): Promis
   if (target.socialPage.connection.connectionStatus !== "CONNECTED") return fail("Kết nối Meta đang không hợp lệ");
   if (target.socialPage.connection.tokenExpiresAt && target.socialPage.connection.tokenExpiresAt <= new Date()) return fail("Page access token đã hết hạn", true, 190);
 
-  const message = postMessage(target.content);
+  const message = buildPostMessage(target.content);
   if (!message) return fail("Bài viết không có caption để đăng");
 
   try {
     const token = decryptToken(target.socialPage.connection.encryptedToken);
     const published = await publishMetaPagePost(target.socialPage.externalPageId, token, target.captionOverride || message);
     const pagePostId = published.id;
-    const externalPostUrl = `https://www.facebook.com/${pagePostId.replace("_", "/posts/")}`;
+    const externalPostUrl = metaPostUrl(pagePostId);
     await prisma.$transaction([
       prisma.socialPublishTarget.update({
         where: { id: target.id },

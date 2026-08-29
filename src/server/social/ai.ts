@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { aiGenerate } from "@/server/ai/generate";
+import { parseJsonObject } from "@/server/ai/json";
 
 const strategySchema = z.object({
   positioning: z.string().min(20).max(800),
@@ -55,14 +56,6 @@ const planSchema = z.object({
 
 export type GeneratedSocialStrategy = z.infer<typeof strategySchema>;
 export type GeneratedSocialPlan = z.infer<typeof planSchema>;
-
-function parseJsonObject(text: string): unknown {
-  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end <= start) throw new Error("AI không trả về JSON hợp lệ");
-  return JSON.parse(cleaned.slice(start, end + 1));
-}
 
 const STRATEGY_SYSTEM = `Bạn là chiến lược gia Facebook Page cấp cao. Hãy xây chiến lược thực tế, khác biệt và có thể triển khai ngay.
 Chỉ trả về một JSON object thuần, không markdown, đúng cấu trúc được yêu cầu. Tỷ lệ các content pillar phải cộng lại đúng 100.`;
