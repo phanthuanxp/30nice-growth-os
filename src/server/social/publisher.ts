@@ -3,17 +3,59 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit/log";
 import { decryptToken } from "@/server/crypto/token-vault";
-import { getMetaPostMetrics, publishMetaPagePost } from "@/server/meta/client";
+import { getMetaPostMetrics, publishMetaGroupPost, publishMetaPagePost } from "@/server/meta/client";
 import { buildPostMessage, classifyMetaFailure, metaPostUrl, nextRetryAt } from "@/server/social/publish-rules";
+import {
+  evaluateGroupDistribution,
+  resolveGroupPublishRoute,
+  startOfDayInOffset,
+  timezoneOffsetHours,
+} from "@/server/social/group-rules";
 
-type PublishResult = { targetId: string; status: "PUBLISHED" | "FAILED" | "SKIPPED"; externalPostId?: string; error?: string };
+type PublishResult = {
+  targetId: string;
+  status: "PUBLISHED" | "FAILED" | "SKIPPED" | "MANUAL_REQUIRED";
+  externalPostId?: string;
+  error?: string;
+};
+
+const targetInclude = {
+  content: true,
+  socialGroup: true,
+  socialPage: {
+    include: {
+      connection: true,
+      workspace: { select: { tenantId: true, timezone: true } },
+    },
+  },
+} satisfies Prisma.SocialPublishTargetInclude;
+
+/**
+ * Recent posting activity for a group, read at publish time.
+ *
+ * The queue was already checked when it was built, but a group can hit its
+ * daily limit or be posted into by hand in the meantime.
+ */
+async function groupActivity(socialGroupId: string, timezone: string, now: Date) {
+  const dayStart = startOfDayInOffset(now, timezoneOffsetHours(timezone, now));
+  const [postsToday, last] = await Promise.all([
+    prisma.socialPublishTarget.count({
+      where: { socialGroupId, status: "PUBLISHED", publishedAt: { gte: dayStart } },
+    }),
+    prisma.socialPublishTarget.findFirst({
+      where: { socialGroupId, status: "PUBLISHED", publishedAt: { not: null } },
+      orderBy: { publishedAt: "desc" },
+      select: { publishedAt: true },
+    }),
+  ]);
+  return { postsToday, lastPostedAt: last?.publishedAt ?? null };
+}
 
 async function processClaimedTarget(targetId: string, lockToken: string): Promise<PublishResult> {
-  const target = await prisma.socialPublishTarget.findFirst({
-    where: { id: targetId, lockToken },
-    include: { content: true, socialPage: { include: { connection: true, workspace: { select: { tenantId: true } } } } },
-  });
+  const target = await prisma.socialPublishTarget.findFirst({ where: { id: targetId, lockToken }, include: targetInclude });
   if (!target) return { targetId, status: "SKIPPED", error: "Target đã được worker khác xử lý" };
+
+  const isGroup = target.targetType === "GROUP";
 
   const fail = async (message: string, permanent = true, code: number | null = null, traceId?: string) => {
     const exhausted = target.attempts >= target.maxAttempts;
@@ -29,46 +71,120 @@ async function processClaimedTarget(targetId: string, lockToken: string): Promis
         responseMetadata: { errorCode: code, traceId: traceId || null, ambiguousNetworkResult: code === null },
       },
     });
-    await prisma.socialContent.update({ where: { id: target.content.id }, data: { status: permanent || exhausted ? "FAILED" : "SCHEDULED" } });
-    await writeAuditLog({ tenantId: target.socialPage.workspace.tenantId, action: "social.publish.failed", resource: "SocialPublishTarget", resourceId: target.id, metadata: { code, permanent: permanent || exhausted } });
+    // Only the Page target owns the content's own status. A group failing must
+    // not mark a post that already went live on the Page as failed.
+    if (!isGroup) {
+      await prisma.socialContent.update({ where: { id: target.content.id }, data: { status: permanent || exhausted ? "FAILED" : "SCHEDULED" } });
+    }
+    await writeAuditLog({
+      tenantId: target.socialPage.workspace.tenantId,
+      action: "social.publish.failed",
+      resource: "SocialPublishTarget",
+      resourceId: target.id,
+      metadata: { code, permanent: permanent || exhausted, targetType: target.targetType },
+    });
     return { targetId: target.id, status: "FAILED" as const, error: message };
   };
 
-  if (target.targetType !== "PAGE") return fail("Phase C chỉ cho phép publisher tự động tới Facebook Page");
-  if (target.status === "PUBLISHED" || target.externalPostId) return { targetId: target.id, status: "SKIPPED" };
-  if (target.content.status !== "SCHEDULED" || !target.content.approvedAt) return fail("Nội dung chưa được duyệt và hẹn lịch hợp lệ");
-  if (target.socialPage.status !== "CONNECTED" || !target.socialPage.externalPageId || !target.socialPage.connection) return fail("Facebook Page chưa được kết nối hợp lệ");
-  if (target.socialPage.connection.connectionStatus !== "CONNECTED") return fail("Kết nối Meta đang không hợp lệ");
-  if (target.socialPage.connection.tokenExpiresAt && target.socialPage.connection.tokenExpiresAt <= new Date()) return fail("Page access token đã hết hạn", true, 190);
+  /** Hand the target back to a person without burning a retry. */
+  const requireManual = async (reason: string) => {
+    await prisma.socialPublishTarget.update({
+      where: { id: target.id },
+      data: { status: "MANUAL_REQUIRED", errorMessage: reason, attempts: 0, nextAttemptAt: null, lockedAt: null, lockToken: null },
+    });
+    await writeAuditLog({
+      tenantId: target.socialPage.workspace.tenantId,
+      action: "social.group.manual_required",
+      resource: "SocialPublishTarget",
+      resourceId: target.id,
+      metadata: { reason },
+    });
+    return { targetId: target.id, status: "MANUAL_REQUIRED" as const, error: reason };
+  };
 
-  const message = buildPostMessage(target.content);
-  if (!message) return fail("Bài viết không có caption để đăng");
+  if (target.status === "PUBLISHED" || target.externalPostId) return { targetId: target.id, status: "SKIPPED" };
+  if (target.content.status === "PUBLISHED" && !isGroup) return { targetId: target.id, status: "SKIPPED" };
+
+  const connection = target.socialPage.connection;
+  if (target.socialPage.status !== "CONNECTED" || !target.socialPage.externalPageId || !connection) return fail("Facebook Page chưa được kết nối hợp lệ");
+  if (connection.connectionStatus !== "CONNECTED") return fail("Kết nối Meta đang không hợp lệ");
+  if (connection.tokenExpiresAt && connection.tokenExpiresAt <= new Date()) return fail("Page access token đã hết hạn", true, 190);
+
+  let groupPostTargetId: string | null = null;
+  if (isGroup) {
+    const group = target.socialGroup;
+    if (!group) return fail("Mục phân phối không còn gắn với Group nào");
+
+    const now = new Date();
+    const verdict = evaluateGroupDistribution({
+      group: {
+        id: group.id,
+        name: group.name,
+        status: group.status,
+        mode: group.mode,
+        topics: group.topics,
+        dailyPostLimit: group.dailyPostLimit,
+        cooldownHours: group.cooldownHours,
+        allowLinks: group.allowLinks,
+        allowPromotion: group.allowPromotion,
+        apiVerifiedAt: group.apiVerifiedAt,
+      },
+      activity: await groupActivity(group.id, target.socialPage.workspace.timezone, now),
+      now,
+    });
+    if (!verdict.allowed) return requireManual(verdict.reason ?? "Group không đủ điều kiện đăng lúc này");
+
+    if (resolveGroupPublishRoute(group, connection.grantedScopes) !== "API") {
+      return requireManual("Group chưa đủ điều kiện đăng tự động, cần đăng thủ công");
+    }
+    if (!group.externalGroupId) return requireManual("Group chưa có Facebook Group ID để gọi API");
+    groupPostTargetId = group.externalGroupId;
+  } else if (target.content.status !== "SCHEDULED" || !target.content.approvedAt) {
+    return fail("Nội dung chưa được duyệt và hẹn lịch hợp lệ");
+  }
+
+  // A group target always posts its own variant; sharing the Page caption
+  // verbatim across groups is exactly what the guardrails exist to prevent.
+  const message = isGroup ? (target.captionOverride ?? "").trim() : (target.captionOverride || buildPostMessage(target.content));
+  if (!message) return isGroup ? requireManual("Chưa có caption biến thể cho Group này") : fail("Bài viết không có caption để đăng");
 
   try {
-    const token = decryptToken(target.socialPage.connection.encryptedToken);
-    const published = await publishMetaPagePost(target.socialPage.externalPageId, token, target.captionOverride || message);
-    const pagePostId = published.id;
-    const externalPostUrl = metaPostUrl(pagePostId);
-    await prisma.$transaction([
+    const token = decryptToken(connection.encryptedToken);
+    const published = groupPostTargetId
+      ? await publishMetaGroupPost(groupPostTargetId, token, message)
+      : await publishMetaPagePost(target.socialPage.externalPageId, token, message);
+    const postId = published.id;
+
+    const writes: Prisma.PrismaPromise<unknown>[] = [
       prisma.socialPublishTarget.update({
         where: { id: target.id },
         data: {
           status: "PUBLISHED",
           publishedAt: new Date(),
-          externalPostId: pagePostId,
-          externalPostUrl,
+          externalPostId: postId,
+          externalPostUrl: metaPostUrl(postId),
           errorMessage: null,
           permanentFailure: false,
           nextAttemptAt: null,
           lockedAt: null,
           lockToken: null,
-          responseMetadata: { graphPostId: pagePostId },
+          responseMetadata: { graphPostId: postId },
         },
       }),
-      prisma.socialContent.update({ where: { id: target.content.id }, data: { status: "PUBLISHED", sourcePostId: pagePostId } }),
-    ]);
-    await writeAuditLog({ tenantId: target.socialPage.workspace.tenantId, action: "social.publish.success", resource: "SocialPublishTarget", resourceId: target.id, metadata: { externalPostId: pagePostId } });
-    return { targetId: target.id, status: "PUBLISHED", externalPostId: pagePostId };
+    ];
+    if (!isGroup) {
+      writes.push(prisma.socialContent.update({ where: { id: target.content.id }, data: { status: "PUBLISHED", sourcePostId: postId } }));
+    }
+    await prisma.$transaction(writes);
+
+    await writeAuditLog({
+      tenantId: target.socialPage.workspace.tenantId,
+      action: isGroup ? "social.group.publish.success" : "social.publish.success",
+      resource: "SocialPublishTarget",
+      resourceId: target.id,
+      metadata: { externalPostId: postId },
+    });
+    return { targetId: target.id, status: "PUBLISHED", externalPostId: postId };
   } catch (error) {
     const classified = classifyMetaFailure(error);
     return fail(classified.message, classified.permanent, classified.code, classified.traceId);
@@ -81,7 +197,7 @@ export async function processSocialPublishQueue(input: { limit?: number; targetI
   const candidates = await prisma.socialPublishTarget.findMany({
     where: {
       id: input.targetId,
-      targetType: "PAGE",
+      // MANUAL_REQUIRED is deliberately absent: those wait on a person, not a retry.
       status: { in: ["SCHEDULED", "FAILED"] },
       scheduledAt: { lte: now },
       permanentFailure: false,
@@ -113,6 +229,8 @@ export async function syncSocialPostInsights(limit = 50) {
   const stale = new Date(Date.now() - 6 * 60 * 60_000);
   const targets = await prisma.socialPublishTarget.findMany({
     where: {
+      // Group posts expose no insight metrics to a Page token, so only Page
+      // posts are synced.
       targetType: "PAGE",
       status: "PUBLISHED",
       externalPostId: { not: null },

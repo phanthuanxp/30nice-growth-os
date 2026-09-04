@@ -621,6 +621,14 @@ model SocialGroup {
   rules           Json?
   dailyPostLimit  Int                   @default(1)
   cooldownHours   Int                   @default(24)
+  allowLinks      Boolean               @default(true)
+  allowPromotion  Boolean               @default(true)
+  /// Set only after the connected Page token was checked against this group.
+  /// API_ALLOWED without this stamp still falls back to the manual workflow.
+  apiVerifiedAt   DateTime?
+  approvedAt      DateTime?
+  approvedById    String?
+  statusReason    String?
   workspace       SocialWorkspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   publishTargets  SocialPublishTarget[]
   createdAt       DateTime              @default(now())
@@ -651,6 +659,8 @@ model SocialPublishTarget {
   permanentFailure Boolean                 @default(false)
   externalPostUrl  String?
   responseMetadata Json?
+  /// Who marked a MANUAL_ONLY group post as done. Null for API publishes.
+  manualPostedById String?
   content          SocialContent           @relation(fields: [socialContentId], references: [id], onDelete: Cascade)
   socialPage       SocialPage              @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
   socialGroup      SocialGroup?            @relation(fields: [socialGroupId], references: [id], onDelete: SetNull)
@@ -660,6 +670,7 @@ model SocialPublishTarget {
 
   @@index([socialPageId, status, scheduledAt])
   @@index([socialGroupId, status])
+  @@index([socialGroupId, publishedAt])
   @@index([status, scheduledAt, nextAttemptAt])
 }
 

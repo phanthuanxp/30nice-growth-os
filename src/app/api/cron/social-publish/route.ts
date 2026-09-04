@@ -12,5 +12,6 @@ export async function POST(request: NextRequest) {
     published: results.filter((item) => item.status === "PUBLISHED").length,
     failed: results.filter((item) => item.status === "FAILED").length,
     skipped: results.filter((item) => item.status === "SKIPPED").length,
+    manualRequired: results.filter((item) => item.status === "MANUAL_REQUIRED").length,
   });
 }

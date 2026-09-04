@@ -142,6 +142,8 @@ src/
 │   ├── http/cron-auth.ts  # Shared cron secret check
 │   ├── http/host-rules.ts # Proxy host/path rules
 │   ├── media/paths.ts     # Upload path containment
+│   ├── social/group-rules.ts  # Group distribution guardrails
+│   ├── social/publish-rules.ts # Publish retry/failure rules
 │   ├── db/index.ts        # Prisma singleton
 │   ├── importers/         # WordPress import placeholders
 │   ├── permissions/       # Role rank helpers

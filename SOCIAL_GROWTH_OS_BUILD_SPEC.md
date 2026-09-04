@@ -462,3 +462,45 @@ Bắt đầu với Phase A. Trước hết hãy rà soát schema Prisma và các
 
 Yêu cầu: giữ multi-tenant isolation; TypeScript strict; validate bằng Zod; không thay đổi các module CMS/SEO hiện có; dùng UI components hiện có; chạy typecheck, lint và build trước khi kết thúc. Báo cáo rõ migration, route mới, UI mới và các điểm cần biến môi trường ở Phase C.
 ```
+
+---
+
+## 16. Trạng thái triển khai Phase D (Group Distribution)
+
+Phase D đã được triển khai với các quyết định sau.
+
+### 16.1 Luồng mặc định là thủ công
+
+`publish_to_groups` **không** nằm trong `META_REQUIRED_SCOPES`. Meta chỉ cấp quyền này sau app review, và thêm nó vào yêu cầu OAuth khi chưa được duyệt sẽ làm hỏng luồng kết nối Page hiện có. Vì vậy:
+
+- Group mới luôn ở `CANDIDATE` + `MANUAL_ONLY`.
+- Chuyển sang `API_ALLOWED` yêu cầu bấm "Xác minh quyền API" thành công trước (đóng dấu `apiVerifiedAt`).
+- Publisher chỉ gọi Graph API khi Group đồng thời: `APPROVED`, `API_ALLOWED`, có `apiVerifiedAt`, và token của Page có scope `publish_to_groups`. Thiếu bất kỳ điều kiện nào thì bài chuyển sang `MANUAL_REQUIRED` chứ không tính là lỗi và không tiêu lượt retry.
+
+### 16.2 Guardrails được kiểm tra hai lần
+
+Toàn bộ luật nằm trong `src/server/social/group-rules.ts` (thuần, có test). Chúng chạy cả khi dựng hàng chờ **và** ngay trước khi đăng, vì giữa hai thời điểm đó Group có thể bị tạm dừng, chạm giới hạn ngày, hoặc vừa được đăng thủ công.
+
+Điều kiện chặn cứng: chưa duyệt, mode `DISABLED`, chạm `dailyPostLimit`, còn trong `cooldownHours`.
+Cảnh báo mềm (không chặn): chủ đề không khớp, bật API nhưng chưa xác minh.
+
+### 16.3 Chống trùng caption
+
+Mỗi Group nhận một caption riêng do AI viết. Trước khi ghi hàng chờ, hệ thống:
+
+1. Gỡ liên kết nếu Group đặt `allowLinks = false`, gỡ nội dung chào bán nếu `allowPromotion = false`.
+2. So khớp vân tay caption (bỏ dấu, bỏ dấu câu, chuẩn hoá khoảng trắng) giữa các Group.
+3. **Từ chối cả lô** nếu có hai Group nhận caption trùng nhau, thay vì đăng.
+
+### 16.4 Giới hạn ngày theo múi giờ của workspace
+
+`dailyPostLimit` là luật theo ngày lịch tại múi giờ của workspace, không phải cửa sổ 24 giờ trượt và cũng không cố định +07:00.
+
+### 16.5 Ranh giới trạng thái
+
+Target Group không bao giờ ghi đè trạng thái của `SocialContent` — chỉ target Page làm việc đó. Nhờ vậy một Group đăng lỗi không đánh dấu "thất bại" cho bài đã lên sóng trên Page. Dựng lại hàng chờ cũng bỏ qua Group đã đăng thành công.
+
+### 16.6 Chưa làm
+
+- Insight cho bài trong Group: token Page không trả metric cho Group, nên `syncSocialPostInsights` vẫn chỉ đồng bộ bài Page.
+- Đăng kèm ảnh/video vào Group: hiện chỉ đăng text.
