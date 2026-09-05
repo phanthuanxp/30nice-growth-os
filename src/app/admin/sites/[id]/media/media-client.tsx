@@ -145,7 +145,7 @@ export function SiteMediaClient({ tenantId }: { tenantId: string }) {
               <>
                 <Upload className="h-10 w-10 text-slate-300" />
                 <p className="text-sm font-medium text-slate-600">Kéo thả ảnh vào đây hoặc nhấp để chọn</p>
-                <p className="text-xs text-slate-400">JPG, PNG, GIF, WebP, SVG · Tối đa 10MB</p>
+                <p className="text-xs text-slate-400">JPG, PNG, GIF, WebP · Tối đa 10MB</p>
               </>
             )}
           </div>
