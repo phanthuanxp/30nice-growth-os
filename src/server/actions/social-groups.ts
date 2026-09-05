@@ -15,6 +15,7 @@ import {
   findDuplicateCaptionGroups,
   resolveGroupPublishRoute,
   sanitizeGroupCaption,
+  shouldClearApiVerification,
   staggerGroupSchedule,
   startOfDayInOffset,
   timezoneOffsetHours,
@@ -118,21 +119,28 @@ export async function updateSocialGroupAction(_previous: SocialGroupResult, form
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
   try {
     const { group, user } = await loadGroupForAdmin(parsed.data.groupId);
+    const nextExternalGroupId = parsed.data.externalGroupId || null;
+    // Verification is proof about one specific group id. Re-point the record and
+    // the proof is void, so it is dropped rather than carried over to a group
+    // whose access was never checked. Pending API targets need no separate
+    // handling: the publisher re-resolves the route and parks them as manual.
+    const clearVerification = shouldClearApiVerification(group.externalGroupId, nextExternalGroupId);
     await prisma.socialGroup.update({
       where: { id: group.id },
       data: {
         name: parsed.data.name,
         groupUrl: parsed.data.groupUrl || null,
-        externalGroupId: parsed.data.externalGroupId || null,
+        externalGroupId: nextExternalGroupId,
         topics: parseTopics(parsed.data.topics),
         rules: parsed.data.rules ? { summary: parsed.data.rules } : Prisma.JsonNull,
         dailyPostLimit: parsed.data.dailyPostLimit,
         cooldownHours: parsed.data.cooldownHours,
         allowLinks: parsed.data.allowLinks === "on",
         allowPromotion: parsed.data.allowPromotion === "on",
+        ...(clearVerification ? { apiVerifiedAt: null } : {}),
       },
     });
-    await writeAuditLog({ userId: user.id, tenantId: group.workspace.tenantId, action: "social.group.update", resource: "SocialGroup", resourceId: group.id });
+    await writeAuditLog({ userId: user.id, tenantId: group.workspace.tenantId, action: "social.group.update", resource: "SocialGroup", resourceId: group.id, metadata: { clearedApiVerification: clearVerification } });
     revalidateGroups();
     return { ok: true, id: group.id };
   } catch (error) {

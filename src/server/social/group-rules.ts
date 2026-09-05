@@ -265,3 +265,15 @@ export function validateVariantCoverage(requestedGroupIds: string[], variantGrou
   if (unexpected.length) return "AI trả về Group không nằm trong yêu cầu";
   return null;
 }
+
+/**
+ * Whether a group's API verification must be discarded.
+ *
+ * The stamp proves the token reached one specific group id. Point the record at
+ * a different group and it proves nothing, so an edit that changes the id must
+ * drop it — otherwise the publisher would treat the old proof as authority to
+ * post into the replacement group.
+ */
+export function shouldClearApiVerification(currentExternalGroupId: string | null, nextExternalGroupId: string | null): boolean {
+  return (currentExternalGroupId ?? null) !== (nextExternalGroupId ?? null);
+}

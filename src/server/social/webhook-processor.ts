@@ -84,16 +84,26 @@ export async function processSocialWebhookEvents(limit = 200): Promise<WebhookPr
       await prisma.socialWebhookEvent.update({ where: { id: event.id }, data: { processedAt: new Date(), errorMessage: null } });
       result.processed += 1;
     } catch (error) {
+      // An exhausted event is stamped processed as well as failed. It has left
+      // the queue either way, and without the stamp the retention delete below
+      // would never reach it — recreating exactly the unbounded growth this
+      // processor exists to stop. errorMessage is what tells the two apart.
+      const exhausted = event.attempts + 1 >= MAX_EVENT_ATTEMPTS;
       await prisma.socialWebhookEvent.update({
         where: { id: event.id },
-        data: { attempts: { increment: 1 }, errorMessage: error instanceof Error ? error.message.slice(0, 500) : "Lỗi xử lý webhook" },
+        data: {
+          attempts: { increment: 1 },
+          processedAt: exhausted ? new Date() : null,
+          errorMessage: error instanceof Error ? error.message.slice(0, 500) : "Lỗi xử lý webhook",
+        },
       });
       result.failed += 1;
     }
   }
 
   // Without this the table only ever grows: every signed delivery since Phase C
-  // is still sitting there.
+  // is still sitting there. Every row that has left the queue carries
+  // processedAt, successes and give-ups alike, so one predicate covers both.
   const cutoff = new Date(Date.now() - WEBHOOK_RETENTION_DAYS * 24 * 60 * 60_000);
   const pruned = await prisma.socialWebhookEvent.deleteMany({
     where: { processedAt: { not: null, lt: cutoff } },

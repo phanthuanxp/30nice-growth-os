@@ -10,6 +10,7 @@ import {
   META_GROUP_PUBLISH_SCOPE,
   resolveGroupPublishRoute,
   sanitizeGroupCaption,
+  shouldClearApiVerification,
   staggerGroupSchedule,
   startOfDayInOffset,
   timezoneOffsetHours,
@@ -300,5 +301,21 @@ describe("AI variant coverage", () => {
 
   it("rejects a group that was never requested", () => {
     assert.match(validateVariantCoverage(["a"], ["a", "z"]) ?? "", /không nằm trong yêu cầu/);
+  });
+});
+
+describe("API verification lifecycle", () => {
+  it("drops verification when the group id is repointed", () => {
+    assert.equal(shouldClearApiVerification("111", "222"), true);
+  });
+
+  it("keeps verification when the id is unchanged", () => {
+    assert.equal(shouldClearApiVerification("111", "111"), false);
+    assert.equal(shouldClearApiVerification(null, null), false);
+  });
+
+  it("drops verification when an id is added or removed", () => {
+    assert.equal(shouldClearApiVerification(null, "111"), true);
+    assert.equal(shouldClearApiVerification("111", null), true);
   });
 });

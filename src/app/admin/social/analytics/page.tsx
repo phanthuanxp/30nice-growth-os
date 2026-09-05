@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart2, Lightbulb, MessageSquare, TrendingUp, UsersRound } from "lucide-react";
+import { AlertTriangle, BarChart2, Lightbulb, MessageSquare, TrendingUp, UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
 import { BarChart } from "@/components/admin/charts/bar-chart";
@@ -74,6 +74,16 @@ export default async function SocialAnalyticsPage() {
         title="Báo cáo Social"
         description={`Hiệu quả ${data.days} ngày gần nhất trên các Facebook Page đã kết nối, cùng kết quả phân phối vào Group.`}
       />
+
+      {data.truncated && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Kỳ này có {data.publishedCount} bài đã đăng, vượt giới hạn {data.sampleLimit} bài mỗi báo cáo.
+            Mọi số liệu và đề xuất bên dưới chỉ tính trên {data.sampleLimit} bài gần nhất, không phải toàn bộ kỳ.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Bài đã đăng" value={totals.posts} icon={BarChart2} description={`Trong ${data.days} ngày`} />

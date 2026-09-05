@@ -253,27 +253,35 @@ export async function getSocialContentDistribution(contentId: string) {
  * Only Page posts carry insight metrics, so engagement is measured on those;
  * group targets are reported separately as distribution outcomes.
  */
+/** Cap on rows pulled into one report. Exceeding it is surfaced, never silent. */
+const REPORT_SAMPLE_LIMIT = 1000;
+
 export async function getSocialAnalytics(days = 30) {
   const user = await requireAuth();
   const tenantWhere = accessibleTenantWhere(user.id, user.role);
   const since = new Date(Date.now() - days * 24 * 60 * 60_000);
 
-  const [pageTargets, groupTargets, commentRows, pendingComments] = await Promise.all([
+  const publishedPageWhere = {
+    targetType: "PAGE" as const,
+    status: "PUBLISHED" as const,
+    publishedAt: { gte: since },
+    socialPage: { workspace: { tenant: tenantWhere } },
+  };
+
+  const [pageTargets, publishedCount, groupTargets, commentRows, pendingComments] = await Promise.all([
     prisma.socialPublishTarget.findMany({
-      where: {
-        targetType: "PAGE",
-        status: "PUBLISHED",
-        publishedAt: { gte: since },
-        socialPage: { workspace: { tenant: tenantWhere } },
-      },
+      where: publishedPageWhere,
       orderBy: { publishedAt: "desc" },
-      take: 500,
+      take: REPORT_SAMPLE_LIMIT,
       include: {
         insight: { select: { engagements: true, reach: true, comments: true } },
         content: { select: { title: true, topic: true, pillar: true, format: true } },
         socialPage: { select: { id: true, name: true, workspace: { select: { id: true, name: true, timezone: true } } } },
       },
     }),
+    // Counted separately so a report that had to be capped can say so, rather
+    // than presenting a partial period as if it were the whole one.
+    prisma.socialPublishTarget.count({ where: publishedPageWhere }),
     prisma.socialPublishTarget.findMany({
       where: {
         targetType: "GROUP",
@@ -281,7 +289,7 @@ export async function getSocialAnalytics(days = 30) {
         socialPage: { workspace: { tenant: tenantWhere } },
       },
       select: { status: true, socialGroup: { select: { name: true } } },
-      take: 500,
+      take: REPORT_SAMPLE_LIMIT,
     }),
     prisma.socialComment.groupBy({
       by: ["publishTargetId"],
@@ -329,6 +337,10 @@ export async function getSocialAnalytics(days = 30) {
   return {
     days,
     samples,
+    /** Total published Page posts in the window, before the sample cap. */
+    publishedCount,
+    truncated: publishedCount > samples.length,
+    sampleLimit: REPORT_SAMPLE_LIMIT,
     timezone: pageTargets[0]?.socialPage.workspace.timezone ?? "Asia/Bangkok",
     groupTargets: groupTargets.map((target) => ({ groupName: target.socialGroup?.name ?? "Group đã xoá", status: target.status })),
     recentComments: pendingComments,
