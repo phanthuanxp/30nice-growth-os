@@ -525,6 +525,7 @@ model SocialPage {
   contents       SocialContent[]
   publishTargets SocialPublishTarget[]
   oauthSessions  MetaOAuthSession[]
+  comments       SocialComment[]
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -665,6 +666,7 @@ model SocialPublishTarget {
   socialPage       SocialPage              @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
   socialGroup      SocialGroup?            @relation(fields: [socialGroupId], references: [id], onDelete: SetNull)
   insight          SocialPostInsight?
+  comments         SocialComment[]
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
@@ -714,10 +716,38 @@ model SocialWebhookEvent {
   field          String?
   payload        Json
   processedAt    DateTime?
+  attempts       Int       @default(0)
+  errorMessage   String?
   createdAt      DateTime  @default(now())
 
   @@index([externalPageId, createdAt])
   @@index([processedAt, createdAt])
+}
+
+/// A comment on a published Page post, rebuilt from the feed webhook.
+/// Group posts are absent: a Page token sees no group comment stream.
+model SocialComment {
+  id                String               @id @default(cuid())
+  externalCommentId String               @unique
+  externalPostId    String
+  publishTargetId   String?
+  socialPageId      String?
+  parentCommentId   String?
+  authorId          String?
+  authorName        String?
+  message           String?
+  /// True when the Page itself wrote the comment, so replies are not counted
+  /// as incoming engagement.
+  isFromPage        Boolean              @default(false)
+  postedAt          DateTime
+  publishTarget     SocialPublishTarget? @relation(fields: [publishTargetId], references: [id], onDelete: SetNull)
+  socialPage        SocialPage?          @relation(fields: [socialPageId], references: [id], onDelete: SetNull)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([socialPageId, postedAt])
+  @@index([publishTargetId, postedAt])
+  @@index([externalPostId])
 }
 
 model AiProviderConfig {

@@ -144,6 +144,8 @@ src/
 │   ├── media/paths.ts     # Upload path containment
 │   ├── social/group-rules.ts  # Group distribution guardrails
 │   ├── social/publish-rules.ts # Publish retry/failure rules
+│   ├── social/webhook-payload.ts # Meta feed webhook parsing
+│   ├── social/performance.ts  # Social reporting + suggestions
 │   ├── db/index.ts        # Prisma singleton
 │   ├── importers/         # WordPress import placeholders
 │   ├── permissions/       # Role rank helpers

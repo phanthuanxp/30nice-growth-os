@@ -246,3 +246,91 @@ export async function getSocialContentDistribution(contentId: string) {
   ]);
   return { contentStatus: content.status, groups, targets };
 }
+
+/**
+ * Everything the social analytics page reports on, for the last `days` days.
+ *
+ * Only Page posts carry insight metrics, so engagement is measured on those;
+ * group targets are reported separately as distribution outcomes.
+ */
+export async function getSocialAnalytics(days = 30) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  const since = new Date(Date.now() - days * 24 * 60 * 60_000);
+
+  const [pageTargets, groupTargets, commentRows, pendingComments] = await Promise.all([
+    prisma.socialPublishTarget.findMany({
+      where: {
+        targetType: "PAGE",
+        status: "PUBLISHED",
+        publishedAt: { gte: since },
+        socialPage: { workspace: { tenant: tenantWhere } },
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 500,
+      include: {
+        insight: { select: { engagements: true, reach: true, comments: true } },
+        content: { select: { title: true, topic: true, pillar: true, format: true } },
+        socialPage: { select: { id: true, name: true, workspace: { select: { id: true, name: true, timezone: true } } } },
+      },
+    }),
+    prisma.socialPublishTarget.findMany({
+      where: {
+        targetType: "GROUP",
+        createdAt: { gte: since },
+        socialPage: { workspace: { tenant: tenantWhere } },
+      },
+      select: { status: true, socialGroup: { select: { name: true } } },
+      take: 500,
+    }),
+    prisma.socialComment.groupBy({
+      by: ["publishTargetId"],
+      where: {
+        isFromPage: false,
+        postedAt: { gte: since },
+        publishTarget: { socialPage: { workspace: { tenant: tenantWhere } } },
+      },
+      _count: { _all: true },
+    }),
+    prisma.socialComment.findMany({
+      where: {
+        isFromPage: false,
+        postedAt: { gte: since },
+        socialPage: { workspace: { tenant: tenantWhere } },
+      },
+      orderBy: { postedAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        message: true,
+        authorName: true,
+        postedAt: true,
+        socialPage: { select: { name: true } },
+        publishTarget: { select: { externalPostUrl: true, content: { select: { id: true, title: true, topic: true } } } },
+      },
+    }),
+  ]);
+
+  const commentsByTarget = new Map(commentRows.flatMap((row) => (row.publishTargetId ? [[row.publishTargetId, row._count._all] as const] : [])));
+
+  const samples = pageTargets.flatMap((target) => (target.publishedAt ? [{
+    targetId: target.id,
+    contentTitle: target.content.title || target.content.topic,
+    pillar: target.content.pillar,
+    format: target.content.format,
+    publishedAt: target.publishedAt,
+    engagements: target.insight?.engagements ?? 0,
+    reach: target.insight?.reach ?? 0,
+    comments: commentsByTarget.get(target.id) ?? 0,
+    pageName: target.socialPage.name,
+    postUrl: target.externalPostUrl,
+  }] : []));
+
+  return {
+    days,
+    samples,
+    timezone: pageTargets[0]?.socialPage.workspace.timezone ?? "Asia/Bangkok",
+    groupTargets: groupTargets.map((target) => ({ groupName: target.socialGroup?.name ?? "Group đã xoá", status: target.status })),
+    recentComments: pendingComments,
+  };
+}

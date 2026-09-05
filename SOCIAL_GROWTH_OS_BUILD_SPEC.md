@@ -504,3 +504,43 @@ Target Group không bao giờ ghi đè trạng thái của `SocialContent` — c
 
 - Insight cho bài trong Group: token Page không trả metric cho Group, nên `syncSocialPostInsights` vẫn chỉ đồng bộ bài Page.
 - Đăng kèm ảnh/video vào Group: hiện chỉ đăng text.
+
+---
+
+## 17. Trạng thái triển khai Phase E (CRM và tối ưu)
+
+### 17.1 Lead attribution — KHÔNG triển khai
+
+Spec Phase E mục 2 ghi "Lead attribution từ Page/Post/Group". Mục này **không làm được** và đã bị bỏ, vì hai lý do độc lập:
+
+1. Model `Lead` đã bị xoá khỏi database bởi migration `20260629000000_remove_lead_models`.
+2. `30NICE_GROWTH_OS_UPGRADE_PLAN.md` §12.3 ghi rõ Lead Center, Forms, Booking và CRM/follow-up automations đang **tạm dừng**, không nhận đầu tư nâng cấp.
+
+Nếu sau này muốn khôi phục, cần quyết định lại mô hình Lead trước, rồi mới nối attribution vào `SocialPublishTarget`.
+
+### 17.2 Webhook đã được xử lý
+
+Từ Phase C, `/api/integrations/meta/webhook` ghi `SocialWebhookEvent` vào DB nhưng **không có gì đọc chúng** — `processedAt` mãi null và bảng phình vô hạn. Phase E đóng ngõ cụt này:
+
+- `src/server/social/webhook-payload.ts` — parse thuần payload `feed` của Meta, có test.
+- `src/server/social/webhook-processor.ts` — chuyển event thành `SocialComment` (add/edited/remove), đóng dấu `processedAt`, bỏ qua event không liên quan thay vì retry vô hạn, dừng sau 3 lần lỗi, và **xoá event đã xử lý quá 30 ngày**.
+- `/api/cron/social-webhooks` + workflow `social-webhooks-cron.yml`, chạy mỗi 30 phút.
+
+Bình luận do chính Page viết được đánh dấu `isFromPage` và không tính là tương tác đến, nếu không mỗi hội thoại sẽ bị đếm gấp đôi.
+
+Bài trong Group không có bình luận đồng bộ: token Page không nhìn thấy luồng bình luận của Group.
+
+### 17.3 Báo cáo và đề xuất
+
+`/admin/social/analytics` (mục sidebar spec đã liệt kê nhưng chưa từng được build).
+
+Toàn bộ tính toán nằm trong `src/server/social/performance.ts`, **thuần và có test**. Cố ý không gọi AI: cùng một dữ liệu luôn cho cùng một kết quả, ranking kiểm chứng được bằng test, và mở báo cáo không tốn chi phí.
+
+Nguyên tắc của phần đề xuất:
+
+- Dưới 3 bài có số liệu thì trả về "cần thêm dữ liệu", không đoán.
+- Một pillar/định dạng phải có tối thiểu 3 bài mới được đưa vào so sánh, để một bài may mắn không thành khuyến nghị.
+- Mỗi đề xuất **bắt buộc kèm căn cứ** (số bài và tương tác trung bình) để người vận hành phản biện được.
+- Nếu các nhóm không khác nhau rõ rệt thì nói thẳng như vậy, thay vì bịa ra một khuyến nghị.
+
+Xếp hạng dùng **tương tác trung bình mỗi bài**, không dùng tổng — nếu không, nhóm nào đăng nhiều nhất sẽ luôn thắng.
