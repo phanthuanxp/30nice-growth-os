@@ -1,4 +1,5 @@
 import { aiGenerate } from "@/server/ai/generate";
+import { stripJsonFence } from "@/server/ai/json";
 
 export type PlanDraft = {
   title: string;
@@ -12,13 +13,6 @@ export type PlanDraft = {
 
 function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 90) || `travel-article-${Date.now()}`;
-}
-
-function stripFence(text: string) {
-  const cleaned = text.trim().replace(/^```json?\s*/i, "").replace(/```\s*$/i, "");
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  return start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
 }
 
 function fallbackPlanDraft(input: { title: string; keyword: string; intent?: string | null; siteName?: string | null; planTitle?: string | null }): PlanDraft {
@@ -49,7 +43,7 @@ export async function generateDraftFromContentPlanItem(input: { title: string; k
   try {
     const prompt = `Site: ${input.siteName || "Travel news site"}\nContent plan: ${input.planTitle || "Travel content plan"}\nArticle title: ${input.title}\nTarget keyword: ${input.keyword}\nIntent: ${input.intent || "travel guide"}\nArticle type: ${input.articleType || "travel_guide"}\n\nGenerate one complete original English SEO article draft. JSON only.`;
     const { text } = await aiGenerate(SYSTEM, prompt);
-    const parsed = JSON.parse(stripFence(text)) as Partial<PlanDraft>;
+    const parsed = JSON.parse(stripJsonFence(text)) as Partial<PlanDraft>;
     if (!parsed.title || !parsed.contentHtml) throw new Error("Incomplete AI draft");
     const title = parsed.title.trim();
     return { title, slug: slugify(parsed.slug || title), excerpt: (parsed.excerpt || "").slice(0, 500), contentHtml: parsed.contentHtml, seoTitle: (parsed.seoTitle || title).slice(0, 200), seoDescription: (parsed.seoDescription || "").slice(0, 500), schemaData: parsed.schemaData || JSON.stringify({ "@context": "https://schema.org", "@type": "Article", headline: title, inLanguage: "en" }) };

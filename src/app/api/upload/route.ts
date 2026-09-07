@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { getSession } from "@/server/auth/session";
+import { checkTenantAccess } from "@/server/permissions/guard";
+import { resolveUploadPath, safeFilename } from "@/server/media/paths";
 import { prisma } from "@/server/db";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+// SVG is deliberately excluded: it is an active document and these files are
+// served back from the admin origin, so an uploaded SVG would be stored XSS.
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(req: NextRequest) {
@@ -13,22 +17,28 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
-  const tenantId = formData.get("tenantId") as string | null;
+  const tenantId = formData.get("tenantId");
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  if (!tenantId) return NextResponse.json({ error: "tenantId required" }, { status: 400 });
+  if (typeof tenantId !== "string" || !tenantId) return NextResponse.json({ error: "tenantId required" }, { status: 400 });
   if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: "Loại file không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF, WebP, SVG." }, { status: 400 });
+    return NextResponse.json({ error: "Loại file không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF, WebP." }, { status: 400 });
   }
   if (file.size > MAX_SIZE) {
     return NextResponse.json({ error: "File quá lớn. Tối đa 10MB." }, { status: 400 });
   }
 
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${Date.now()}_${safe}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", tenantId);
+  // Also pins tenantId to a real, permitted tenant id, so it can never be used
+  // to walk out of the uploads directory.
+  if (!(await checkTenantAccess(tenantId, "EDITOR"))) {
+    return NextResponse.json({ error: "Không có quyền với site này" }, { status: 403 });
+  }
 
-  await mkdir(uploadDir, { recursive: true });
+  const filename = `${Date.now()}_${safeFilename(file.name)}`;
+  const destination = resolveUploadPath([tenantId, filename]);
+  if (!destination) return NextResponse.json({ error: "Đường dẫn tệp không hợp lệ" }, { status: 400 });
+
+  await mkdir(path.dirname(destination), { recursive: true });
   const bytes = await file.arrayBuffer();
   let buffer: Uint8Array = Buffer.from(bytes);
   let finalSize = file.size;
@@ -56,10 +66,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await writeFile(path.join(uploadDir, filename), buffer);
+  await writeFile(destination, buffer);
 
   const url = `/api/files/${tenantId}/${filename}`;
-  const alt = formData.get("alt") as string | undefined;
+  const alt = formData.get("alt");
 
   const asset = await prisma.mediaAsset.create({
     data: {
@@ -68,7 +78,7 @@ export async function POST(req: NextRequest) {
       filename,
       mimeType: file.type,
       size: finalSize,
-      alt: alt ?? null,
+      alt: typeof alt === "string" && alt ? alt : null,
     },
   });
 

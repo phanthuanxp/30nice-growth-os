@@ -1,13 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminOnlyPath, isInternalOnlyPath, isLoopbackHost, normalizeHost } from "@/server/http/host-rules";
 
 const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "30nice.vn").toLowerCase();
 const ADMIN_HOST = (process.env.ADMIN_HOST ?? `admin.${PRIMARY_HOST}`).toLowerCase();
-const INTERNAL_BASE = process.env.INTERNAL_BASE_URL ?? "http://localhost:3002";
-
-function normalizeHost(raw: string | null): string {
-  if (!raw) return "";
-  return raw.toLowerCase().replace(/:\d+$/, "");
-}
+// Must point at the port this app actually listens on (3001 in deploy/ecosystem.config.js,
+// which is also what nginx proxies to). A wrong value here fails silently: the fetch below
+// throws, getRedirectRules() returns [], and tenant redirect rules simply never apply.
+const INTERNAL_BASE = process.env.INTERNAL_BASE_URL ?? "http://127.0.0.1:3001";
 
 type RedirectRule = { fromPath: string; toPath: string; statusCode: number };
 
@@ -39,6 +38,7 @@ async function getRedirectRules(host: string): Promise<RedirectRule[]> {
 
 /**
  * Edge proxy for multi-tenant routing:
+ *  - Blocks /api/internal on every public hostname.
  *  - Blocks /admin and /login on non-admin hosts.
  *  - Applies per-tenant redirect rules (fetched from DB via internal API, cached 60s).
  *  - Passes everything else through; tenant resolution happens in resolveTenant().
@@ -47,21 +47,22 @@ export async function proxy(req: NextRequest) {
   const host = normalizeHost(req.headers.get("host"));
   const { pathname } = req.nextUrl;
 
-  // Localhost / dev: allow everything
-  if (host === "" || host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
+  // Localhost / dev: allow everything, including the proxy's own internal fetch
+  if (isLoopbackHost(host)) {
     return NextResponse.next();
+  }
+
+  // The internal API has no auth of its own — it is only ever called by this
+  // proxy over INTERNAL_BASE_URL, which arrives on a loopback host.
+  if (isInternalOnlyPath(pathname)) {
+    return new NextResponse(null, { status: 404 });
   }
 
   const isAdminHost = host === ADMIN_HOST;
 
   // Security: tenant subdomains must not expose admin or login routes
   if (!isAdminHost) {
-    if (
-      pathname === "/admin" ||
-      pathname.startsWith("/admin/") ||
-      pathname === "/login" ||
-      pathname.startsWith("/api/auth/")
-    ) {
+    if (isAdminOnlyPath(pathname)) {
       return new NextResponse(null, { status: 404 });
     }
 

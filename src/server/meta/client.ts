@@ -235,3 +235,19 @@ export async function getMetaPostMetrics(postId: string, pageToken: string) {
     rawMetrics: { counts: countsPayload, insights: insightPayload },
   };
 }
+
+/**
+ * Read a group the connected Page can see. Used to verify, before switching a
+ * group to API mode, that the token really reaches it — a group id typed into
+ * the library is not proof of access.
+ */
+export async function getMetaGroup(groupId: string, pageToken: string) {
+  const payload = await graphRequest(encodeURIComponent(groupId), { token: pageToken, params: { fields: "id,name,privacy" } });
+  return z.object({ id: z.string(), name: z.string().optional(), privacy: z.string().optional() }).parse(payload);
+}
+
+/** Requires the publish_to_groups permission, which Meta grants only after app review. */
+export async function publishMetaGroupPost(groupId: string, pageToken: string, message: string) {
+  const payload = await graphRequest(`${encodeURIComponent(groupId)}/feed`, { token: pageToken, method: "POST", params: { message } });
+  return z.object({ id: z.string().min(1) }).parse(payload);
+}

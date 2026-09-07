@@ -1,4 +1,5 @@
 import { hashContent } from "@/server/content/source-utils";
+import { readCappedText, safeFetch } from "@/server/http/ssrf-guard";
 
 export type ExtractedArticle = {
   url: string;
@@ -75,10 +76,15 @@ function absolutize(maybeUrl: string | undefined, base: string) {
   try { return new URL(maybeUrl, base).toString(); } catch { return maybeUrl; }
 }
 
+// Cap the response read itself, not just the stored copy below: without this a
+// malicious or misconfigured source could stream gigabytes into memory before
+// the 500KB storage truncation ever runs.
+const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+
 export async function extractArticleFromUrl(url: string): Promise<ExtractedArticle> {
-  const response = await fetch(url, { headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" }, signal: AbortSignal.timeout(20000) });
+  const response = await safeFetch(url, { headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" }, timeoutMs: 20000 });
   if (!response.ok) throw new Error(`Fetch failed ${response.status}`);
-  const rawHtml = await response.text();
+  const rawHtml = await readCappedText(response, MAX_RESPONSE_BYTES);
   const mainHtml = pickMainHtml(rawHtml);
   const extractedText = stripHtml(mainHtml);
   if (extractedText.length < 250) throw new Error("Extracted text too short");

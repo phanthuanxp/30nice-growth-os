@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { aiGenerate } from "@/server/ai/generate";
+import { parseJsonObject } from "@/server/ai/json";
+import { validateVariantCoverage } from "@/server/social/group-rules";
 
 const strategySchema = z.object({
   positioning: z.string().min(20).max(800),
@@ -55,14 +57,6 @@ const planSchema = z.object({
 
 export type GeneratedSocialStrategy = z.infer<typeof strategySchema>;
 export type GeneratedSocialPlan = z.infer<typeof planSchema>;
-
-function parseJsonObject(text: string): unknown {
-  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end <= start) throw new Error("AI không trả về JSON hợp lệ");
-  return JSON.parse(cleaned.slice(start, end + 1));
-}
 
 const STRATEGY_SYSTEM = `Bạn là chiến lược gia Facebook Page cấp cao. Hãy xây chiến lược thực tế, khác biệt và có thể triển khai ngay.
 Chỉ trả về một JSON object thuần, không markdown, đúng cấu trúc được yêu cầu. Tỷ lệ các content pillar phải cộng lại đúng 100.`;
@@ -152,4 +146,84 @@ JSON bắt buộc:
   const days = new Set(plan.items.map((item) => item.day));
   if (days.size !== 30) throw new Error("AI trả về ngày bị trùng trong kế hoạch 30 ngày");
   return { plan, provider };
+}
+
+const captionVariantSchema = z.object({
+  variants: z.array(z.object({
+    groupId: z.string().min(1),
+    angle: z.string().min(5).max(200),
+    caption: z.string().min(40).max(3000),
+  })).min(1).max(20),
+});
+
+export type GeneratedGroupCaptions = z.infer<typeof captionVariantSchema>;
+
+export interface GroupCaptionBrief {
+  id: string;
+  name: string;
+  topics: string[];
+  rules: string | null;
+  allowLinks: boolean;
+  allowPromotion: boolean;
+}
+
+const GROUP_CAPTION_SYSTEM = `Bạn là người vận hành cộng đồng Facebook có kinh nghiệm.
+Nhiệm vụ: viết lại một bài gốc thành nhiều biến thể, mỗi biến thể dành riêng cho một Group.
+Bắt buộc: mỗi Group một góc tiếp cận và cách mở bài KHÁC HẲN nhau; tuyệt đối không dùng lại nguyên văn bài gốc hay bài của Group khác.
+Viết như một thành viên chia sẻ kinh nghiệm, không viết như quảng cáo. Không bịa số liệu, đánh giá hay cam kết không có trong bài gốc.
+Chỉ trả về một JSON object thuần, không markdown, đúng cấu trúc được yêu cầu.`;
+
+/**
+ * Ask the model for one distinct caption per group.
+ *
+ * The per-group constraints are stated in the prompt, but nothing here trusts
+ * that: callers still run `sanitizeGroupCaption` and reject duplicates, since a
+ * banned link or a repeated caption is what gets an account flagged.
+ */
+export async function generateGroupCaptionVariants(input: {
+  content: { topic: string; title: string | null; caption: string | null; callToAction: string | null; hashtags: string[] };
+  pageName: string;
+  groups: GroupCaptionBrief[];
+  language: string;
+}): Promise<{ variants: GeneratedGroupCaptions["variants"]; provider: string }> {
+  if (input.groups.length === 0) throw new Error("Cần ít nhất một Group để tạo biến thể caption");
+
+  const prompt = `Bài gốc trên Page "${input.pageName}":
+${JSON.stringify(input.content, null, 2)}
+
+Danh sách Group cần viết biến thể:
+${JSON.stringify(input.groups.map((group) => ({
+    groupId: group.id,
+    name: group.name,
+    topics: group.topics,
+    rules: group.rules,
+    duocGanLink: group.allowLinks,
+    duocChaoBan: group.allowPromotion,
+  })), null, 2)}
+
+Yêu cầu:
+- Trả đúng ${input.groups.length} biến thể, mỗi groupId xuất hiện đúng một lần, dùng nguyên groupId đã cho.
+- Viết bằng ngôn ngữ ${input.language}, độ dài 80–200 từ mỗi biến thể.
+- Bám sát chủ đề của từng Group và tôn trọng "rules" của Group đó.
+- Nếu duocGanLink = false: không chèn bất kỳ URL, tên miền hay "inbox link" nào.
+- Nếu duocChaoBan = false: không nêu giá, khuyến mãi, hotline, Zalo hay lời kêu gọi đặt/mua.
+- "angle" mô tả ngắn gọn góc tiếp cận riêng của biến thể đó.
+
+JSON bắt buộc:
+{
+  "variants": [
+    { "groupId": "...", "angle": "...", "caption": "..." }
+  ]
+}`;
+
+  const { text, provider } = await aiGenerate(GROUP_CAPTION_SYSTEM, prompt, { maxTokens: 8000, temperature: 0.85 });
+  const parsed = captionVariantSchema.parse(parseJsonObject(text));
+
+  const coverageProblem = validateVariantCoverage(
+    input.groups.map((group) => group.id),
+    parsed.variants.map((variant) => variant.groupId),
+  );
+  if (coverageProblem) throw new Error(coverageProblem);
+
+  return { variants: parsed.variants, provider };
 }

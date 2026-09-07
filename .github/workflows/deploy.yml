@@ -59,11 +59,20 @@ jobs:
 
             SMOKE_TOKEN="$(node <<'NODE'
             const { createHmac } = require("node:crypto");
+            // Must match the signed shape src/server/auth/token.ts verifies:
+            // {id,name,email,role,iat,exp}. A token missing iat/exp is rejected
+            // as unsigned-and-expired by design, so building the old
+            // {id,name,email,role}-only shape here would make this smoke test
+            // fail even on a successful deploy.
+            const issuedAt = Math.floor(Date.now() / 1000);
+            const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
             const user = {
               id: "deploy-smoke-test",
               name: "Deploy Smoke Test",
               email: "deploy-smoke@30nice.vn",
               role: "SUPER_ADMIN",
+              iat: issuedAt,
+              exp: issuedAt + SESSION_MAX_AGE_SECONDS,
             };
             const payload = Buffer.from(JSON.stringify(user)).toString("base64url");
             const signature = createHmac("sha256", process.env.SESSION_SECRET)

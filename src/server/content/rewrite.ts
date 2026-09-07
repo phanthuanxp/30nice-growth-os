@@ -1,4 +1,5 @@
 import { aiGenerate } from "@/server/ai/generate";
+import { stripJsonFence } from "@/server/ai/json";
 
 export type RewriteDraft = {
   title: string;
@@ -12,14 +13,6 @@ export type RewriteDraft = {
 
 function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 90) || `travel-guide-${Date.now()}`;
-}
-
-function safeJson(text: string) {
-  const cleaned = text.trim().replace(/^```json?\s*/i, "").replace(/```\s*$/i, "");
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start >= 0 && end > start) return cleaned.slice(start, end + 1);
-  return cleaned;
 }
 
 function fallbackDraft(input: { sourceTitle?: string | null; sourceText: string; targetKeyword?: string | null; siteName?: string | null }): RewriteDraft {
@@ -37,7 +30,7 @@ export async function rewriteSourceArticle(input: { sourceTitle?: string | null;
   try {
     const prompt = `Target keyword: ${input.targetKeyword || input.sourceTitle || "travel guide"}\nSite: ${input.siteName || "Travel news site"}\nSource title: ${input.sourceTitle || "Untitled"}\nSource canonical: ${input.canonicalUrl || ""}\n\nSource text excerpt:\n${input.sourceText.slice(0, 9000)}\n\nCreate a new original English SEO draft. JSON only.`;
     const { text } = await aiGenerate(SYSTEM, prompt);
-    const parsed = JSON.parse(safeJson(text)) as Partial<RewriteDraft>;
+    const parsed = JSON.parse(stripJsonFence(text)) as Partial<RewriteDraft>;
     if (!parsed.title || !parsed.contentHtml) throw new Error("AI returned incomplete draft");
     const title = parsed.title.trim();
     return {

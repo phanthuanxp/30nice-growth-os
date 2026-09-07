@@ -1,16 +1,20 @@
+import { readCappedText, safeFetch } from "@/server/http/ssrf-guard";
+
 export type DiscoveredUrl = { url: string; title?: string; lastmod?: string };
+
+const MAX_FEED_BYTES = 10 * 1024 * 1024;
 
 function stripCdata(s: string) {
   return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim();
 }
 
 export async function fetchSitemapUrls(sitemapUrl: string, maxUrls = 500): Promise<DiscoveredUrl[]> {
-  const res = await fetch(sitemapUrl, {
+  const res = await safeFetch(sitemapUrl, {
     headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" },
-    signal: AbortSignal.timeout(20000),
+    timeoutMs: 20000,
   });
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${sitemapUrl}`);
-  const xml = await res.text();
+  const xml = await readCappedText(res, MAX_FEED_BYTES);
 
   // Sitemap index → recurse into sub-sitemaps
   if (/<sitemapindex/i.test(xml)) {
@@ -41,12 +45,12 @@ export async function fetchSitemapUrls(sitemapUrl: string, maxUrls = 500): Promi
 }
 
 export async function fetchRssUrls(feedUrl: string, maxUrls = 200): Promise<DiscoveredUrl[]> {
-  const res = await fetch(feedUrl, {
+  const res = await safeFetch(feedUrl, {
     headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" },
-    signal: AbortSignal.timeout(15000),
+    timeoutMs: 15000,
   });
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${feedUrl}`);
-  const xml = await res.text();
+  const xml = await readCappedText(res, MAX_FEED_BYTES);
 
   // Atom feed
   if (/<feed[\s>]/i.test(xml)) {

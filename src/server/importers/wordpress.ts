@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import type { Prisma } from "@prisma/client";
+import { safeFetch } from "@/server/http/ssrf-guard";
 
 export interface WordPressImportResult {
   ok: boolean;
@@ -42,10 +43,7 @@ function stripHtml(html: string): string {
 }
 
 async function wpFetch<T>(url: string): Promise<T[]> {
-  const res = await fetch(url, {
-    headers: { "User-Agent": "30Nice-Growth-OS/1.0" },
-    next: { revalidate: 0 },
-  });
+  const res = await safeFetch(url, { headers: { "User-Agent": "30Nice-Growth-OS/1.0" } });
   if (!res.ok) throw new Error(`WP API ${res.status}: ${url}`);
   return res.json() as Promise<T[]>;
 }

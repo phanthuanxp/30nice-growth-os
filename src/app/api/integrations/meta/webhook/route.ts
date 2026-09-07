@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
+import { secretsMatch } from "@/server/http/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const mode = request.nextUrl.searchParams.get("hub.mode");
   const supplied = request.nextUrl.searchParams.get("hub.verify_token");
   const challenge = request.nextUrl.searchParams.get("hub.challenge");
-  if (!verifyToken || mode !== "subscribe" || supplied !== verifyToken || !challenge) return new NextResponse("Forbidden", { status: 403 });
+  if (!verifyToken || mode !== "subscribe" || !secretsMatch(supplied, verifyToken) || !challenge) return new NextResponse("Forbidden", { status: 403 });
   return new NextResponse(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
 }
 

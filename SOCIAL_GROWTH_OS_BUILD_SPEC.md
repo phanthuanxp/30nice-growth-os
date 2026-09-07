@@ -462,3 +462,85 @@ Bắt đầu với Phase A. Trước hết hãy rà soát schema Prisma và các
 
 Yêu cầu: giữ multi-tenant isolation; TypeScript strict; validate bằng Zod; không thay đổi các module CMS/SEO hiện có; dùng UI components hiện có; chạy typecheck, lint và build trước khi kết thúc. Báo cáo rõ migration, route mới, UI mới và các điểm cần biến môi trường ở Phase C.
 ```
+
+---
+
+## 16. Trạng thái triển khai Phase D (Group Distribution)
+
+Phase D đã được triển khai với các quyết định sau.
+
+### 16.1 Luồng mặc định là thủ công
+
+`publish_to_groups` **không** nằm trong `META_REQUIRED_SCOPES`. Meta chỉ cấp quyền này sau app review, và thêm nó vào yêu cầu OAuth khi chưa được duyệt sẽ làm hỏng luồng kết nối Page hiện có. Vì vậy:
+
+- Group mới luôn ở `CANDIDATE` + `MANUAL_ONLY`.
+- Chuyển sang `API_ALLOWED` yêu cầu bấm "Xác minh quyền API" thành công trước (đóng dấu `apiVerifiedAt`).
+- Publisher chỉ gọi Graph API khi Group đồng thời: `APPROVED`, `API_ALLOWED`, có `apiVerifiedAt`, và token của Page có scope `publish_to_groups`. Thiếu bất kỳ điều kiện nào thì bài chuyển sang `MANUAL_REQUIRED` chứ không tính là lỗi và không tiêu lượt retry.
+
+### 16.2 Guardrails được kiểm tra hai lần
+
+Toàn bộ luật nằm trong `src/server/social/group-rules.ts` (thuần, có test). Chúng chạy cả khi dựng hàng chờ **và** ngay trước khi đăng, vì giữa hai thời điểm đó Group có thể bị tạm dừng, chạm giới hạn ngày, hoặc vừa được đăng thủ công.
+
+Điều kiện chặn cứng: chưa duyệt, mode `DISABLED`, chạm `dailyPostLimit`, còn trong `cooldownHours`.
+Cảnh báo mềm (không chặn): chủ đề không khớp, bật API nhưng chưa xác minh.
+
+### 16.3 Chống trùng caption
+
+Mỗi Group nhận một caption riêng do AI viết. Trước khi ghi hàng chờ, hệ thống:
+
+1. Gỡ liên kết nếu Group đặt `allowLinks = false`, gỡ nội dung chào bán nếu `allowPromotion = false`.
+2. So khớp vân tay caption (bỏ dấu, bỏ dấu câu, chuẩn hoá khoảng trắng) giữa các Group.
+3. **Từ chối cả lô** nếu có hai Group nhận caption trùng nhau, thay vì đăng.
+
+### 16.4 Giới hạn ngày theo múi giờ của workspace
+
+`dailyPostLimit` là luật theo ngày lịch tại múi giờ của workspace, không phải cửa sổ 24 giờ trượt và cũng không cố định +07:00.
+
+### 16.5 Ranh giới trạng thái
+
+Target Group không bao giờ ghi đè trạng thái của `SocialContent` — chỉ target Page làm việc đó. Nhờ vậy một Group đăng lỗi không đánh dấu "thất bại" cho bài đã lên sóng trên Page. Dựng lại hàng chờ cũng bỏ qua Group đã đăng thành công.
+
+### 16.6 Chưa làm
+
+- Insight cho bài trong Group: token Page không trả metric cho Group, nên `syncSocialPostInsights` vẫn chỉ đồng bộ bài Page.
+- Đăng kèm ảnh/video vào Group: hiện chỉ đăng text.
+
+---
+
+## 17. Trạng thái triển khai Phase E (CRM và tối ưu)
+
+### 17.1 Lead attribution — KHÔNG triển khai
+
+Spec Phase E mục 2 ghi "Lead attribution từ Page/Post/Group". Mục này **không làm được** và đã bị bỏ, vì hai lý do độc lập:
+
+1. Model `Lead` đã bị xoá khỏi database bởi migration `20260629000000_remove_lead_models`.
+2. `30NICE_GROWTH_OS_UPGRADE_PLAN.md` §12.3 ghi rõ Lead Center, Forms, Booking và CRM/follow-up automations đang **tạm dừng**, không nhận đầu tư nâng cấp.
+
+Nếu sau này muốn khôi phục, cần quyết định lại mô hình Lead trước, rồi mới nối attribution vào `SocialPublishTarget`.
+
+### 17.2 Webhook đã được xử lý
+
+Từ Phase C, `/api/integrations/meta/webhook` ghi `SocialWebhookEvent` vào DB nhưng **không có gì đọc chúng** — `processedAt` mãi null và bảng phình vô hạn. Phase E đóng ngõ cụt này:
+
+- `src/server/social/webhook-payload.ts` — parse thuần payload `feed` của Meta, có test.
+- `src/server/social/webhook-processor.ts` — chuyển event thành `SocialComment` (add/edited/remove), đóng dấu `processedAt`, bỏ qua event không liên quan thay vì retry vô hạn, dừng sau 3 lần lỗi, và **xoá event đã xử lý quá 30 ngày**.
+- `/api/cron/social-webhooks` + workflow `social-webhooks-cron.yml`, chạy mỗi 30 phút.
+
+Bình luận do chính Page viết được đánh dấu `isFromPage` và không tính là tương tác đến, nếu không mỗi hội thoại sẽ bị đếm gấp đôi.
+
+Bài trong Group không có bình luận đồng bộ: token Page không nhìn thấy luồng bình luận của Group.
+
+### 17.3 Báo cáo và đề xuất
+
+`/admin/social/analytics` (mục sidebar spec đã liệt kê nhưng chưa từng được build).
+
+Toàn bộ tính toán nằm trong `src/server/social/performance.ts`, **thuần và có test**. Cố ý không gọi AI: cùng một dữ liệu luôn cho cùng một kết quả, ranking kiểm chứng được bằng test, và mở báo cáo không tốn chi phí.
+
+Nguyên tắc của phần đề xuất:
+
+- Dưới 3 bài có số liệu thì trả về "cần thêm dữ liệu", không đoán.
+- Một pillar/định dạng phải có tối thiểu 3 bài mới được đưa vào so sánh, để một bài may mắn không thành khuyến nghị.
+- Mỗi đề xuất **bắt buộc kèm căn cứ** (số bài và tương tác trung bình) để người vận hành phản biện được.
+- Nếu các nhóm không khác nhau rõ rệt thì nói thẳng như vậy, thay vì bịa ra một khuyến nghị.
+
+Xếp hạng dùng **tương tác trung bình mỗi bài**, không dùng tổng — nếu không, nhóm nào đăng nhiều nhất sẽ luôn thắng.

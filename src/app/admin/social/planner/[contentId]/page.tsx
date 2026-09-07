@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, History, PencilLine } from "lucide-react";
+import { ArrowLeft, History, PencilLine, Share2 } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { SocialContentEditor } from "@/components/admin/social-content-editor";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSocialContent } from "@/server/queries/social";
+import { GroupDistributionForm, GroupDistributionTargets } from "@/components/admin/social-distribution";
+import { getSocialContent, getSocialContentDistribution } from "@/server/queries/social";
 
 export const metadata: Metadata = { title: "Biên tập nội dung Social" };
 
@@ -18,11 +19,16 @@ function localDateTimeValue(date: Date | null) {
   return local.toISOString().slice(0, 16);
 }
 
+function displayDate(date: Date | null) {
+  return date ? date.toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" }) : null;
+}
+
 export default async function SocialContentEditorPage({ params }: { params: Promise<{ contentId: string }> }) {
   const { contentId } = await params;
-  const content = await getSocialContent(contentId);
+  const [content, distribution] = await Promise.all([getSocialContent(contentId), getSocialContentDistribution(contentId)]);
   if (!content) notFound();
   const media = (content.mediaBrief ?? {}) as MediaBrief;
+  const canDistribute = ["APPROVED", "SCHEDULED", "PUBLISHED"].includes(content.status);
 
   return (
     <div className="space-y-6">
@@ -76,6 +82,54 @@ export default async function SocialContentEditorPage({ params }: { params: Prom
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Share2 className="h-4 w-4 text-cyan-600" />Phân phối vào Group</CardTitle>
+            <CardDescription>AI viết riêng một caption cho mỗi Group; hệ thống kiểm tra giới hạn, giãn cách và quy tắc trước khi xếp hàng chờ.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GroupDistributionForm
+              contentId={content.id}
+              canDistribute={canDistribute}
+              groups={(distribution?.groups ?? []).map((group) => ({
+                id: group.id,
+                name: group.name,
+                mode: group.mode,
+                topics: group.topics,
+                dailyPostLimit: group.dailyPostLimit,
+                cooldownHours: group.cooldownHours,
+                allowLinks: group.allowLinks,
+                allowPromotion: group.allowPromotion,
+                apiVerified: Boolean(group.apiVerifiedAt),
+              }))}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hàng chờ Group của bài này</CardTitle>
+            <CardDescription>Với Group thủ công: copy caption, đăng trong Group rồi dán URL và đánh dấu đã đăng.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GroupDistributionTargets
+              targets={(distribution?.targets ?? []).map((target) => ({
+                id: target.id,
+                groupName: target.socialGroup?.name ?? "Group đã xoá",
+                groupUrl: target.socialGroup?.groupUrl ?? null,
+                caption: target.captionOverride ?? "",
+                status: target.status,
+                scheduledAt: displayDate(target.scheduledAt),
+                publishedAt: displayDate(target.publishedAt),
+                postUrl: target.externalPostUrl,
+                errorMessage: target.errorMessage,
+              }))}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
