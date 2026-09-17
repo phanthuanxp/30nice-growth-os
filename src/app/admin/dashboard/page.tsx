@@ -15,8 +15,12 @@ import {
   Workflow,
   UploadCloud,
   ArrowRight,
+  Share2,
+  Compass,
+  UserCog,
 } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getTenantsWithCounts } from "@/server/queries/dashboard";
@@ -90,6 +94,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Mọi số liệu và site bên dưới là dữ liệu mẫu." />}
+
       <div
         className="rounded-2xl px-6 py-5 text-white"
         style={{ background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)" }}
@@ -99,12 +105,7 @@ export default async function DashboardPage() {
         </p>
         <h2 className="text-2xl font-bold">Trung tâm quản trị CMS & tăng trưởng</h2>
         <p className="text-sm opacity-80 mt-1">
-          Quản lý site, page, blog, media, menu, theme, lead, SEO/AI, analytics và automation trong một admin.
-          {isDemo && (
-            <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">
-              Dữ liệu demo
-            </span>
-          )}
+          Quản lý site, page, blog, media, menu, theme, SEO/AI, analytics và automation trong một admin.
         </p>
       </div>
 
@@ -115,13 +116,13 @@ export default async function DashboardPage() {
           { label: "Media", desc: "Thư viện ảnh/file", href: "/admin/media", icon: Image },
           { label: "Menu", desc: "Menu điều hướng site", href: "/admin/menus", icon: Menu },
           { label: "Giao diện", desc: "Thư viện giao diện", href: "/admin/themes", icon: Palette },
-          { label: "Lead", desc: "Inbox khách hàng", href: "/admin/leads", icon: Users },
+          { label: "Social Growth OS", desc: "Page, kế hoạch, Group", href: "/admin/social", icon: Share2 },
           { label: "SEO + AI", desc: "Tối ưu & viết nội dung", href: "/admin/seo-ai", icon: Search },
           { label: "Tự động hoá", desc: "Job, import, báo cáo", href: "/admin/automation", icon: Workflow },
           { label: "Nhập dữ liệu", desc: "Nhập dữ liệu website", href: "/admin/import", icon: UploadCloud },
-          { label: "Quảng cáo", desc: "Quản lý chiến dịch", href: "/admin/ads", icon: Megaphone },
+          { label: "Subdomain Factory", desc: "Nghiên cứu & lập kế hoạch từ khoá", href: "/admin/seo/factory", icon: Compass },
           { label: "Phân tích", desc: "Traffic & chuyển đổi", href: "/admin/analytics", icon: BarChart2 },
-          { label: "Báo cáo", desc: "Báo cáo tăng trưởng", href: "/admin/reports", icon: TrendingUp },
+          { label: "Người dùng", desc: "Quản lý tài khoản & quyền", href: "/admin/users", icon: UserCog },
         ].map((item) => (
           <Link
             key={item.href}

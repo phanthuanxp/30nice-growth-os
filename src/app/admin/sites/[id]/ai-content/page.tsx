@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getTenantById } from "@/server/queries/tenants";
 import { listAiContentJobs } from "@/server/queries/ai-content";
-import { SiteSidebar } from "@/components/admin/site-sidebar";
 import { NewContentJobForm } from "./new-job-form";
 
 interface Props {
@@ -49,62 +48,52 @@ export default async function AiContentPage({ params }: Props) {
   const jobs = await listAiContentJobs(id).catch(() => []);
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <SiteSidebar
-        siteId={id}
-        siteName={tenant.name}
-        siteSlug={tenant.slug}
-        primaryDomain={tenant.primaryDomain}
+    <div className="max-w-4xl mx-auto">
+      <PageHeader
+        title="AI Content Engine"
+        description="Tạo content chuẩn SEO với AI: brief → draft → publish."
       />
-      <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
-        <div className="max-w-4xl mx-auto">
-          <PageHeader
-            title="AI Content Engine"
-            description="Tạo content chuẩn SEO với AI: brief → draft → publish."
-          />
 
-          <NewContentJobForm tenantId={id} />
+      <NewContentJobForm tenantId={id} />
 
-          {jobs.length === 0 ? (
-            <EmptyState
-              icon={Brain}
-              title="Chưa có content job nào"
-              description="Điền form phía trên để tạo content mới với AI."
-            />
-          ) : (
-            <div className="grid gap-3">
-              {jobs.map((job) => {
-                const st = JOB_STATUS[job.status] ?? JOB_STATUS.PENDING;
-                const Icon = st.icon;
-                return (
-                  <Link key={job.id} href={`/admin/sites/${id}/ai-content/${job.id}`}>
-                    <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-slate-800 truncate">{job.title}</h3>
-                            <Badge variant={st.variant} className="shrink-0">
-                              <Icon className="h-3 w-3 mr-1" />
-                              {st.label}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-slate-400">
-                            {job.targetKeyword && <span>KW: {job.targetKeyword}</span>}
-                            <span>{CONTENT_TYPE_LABEL[job.contentType] ?? job.contentType}</span>
-                            <span>~{job.targetLength} từ</span>
-                            <span>{job.language}</span>
-                            <span>{job.createdAt.toLocaleDateString("vi-VN")}</span>
-                          </div>
-                        </div>
+      {jobs.length === 0 ? (
+        <EmptyState
+          icon={Brain}
+          title="Chưa có content job nào"
+          description="Điền form phía trên để tạo content mới với AI."
+        />
+      ) : (
+        <div className="grid gap-3">
+          {jobs.map((job) => {
+            const st = JOB_STATUS[job.status] ?? JOB_STATUS.PENDING;
+            const Icon = st.icon;
+            return (
+              <Link key={job.id} href={`/admin/sites/${id}/ai-content/${job.id}`}>
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-slate-800 truncate">{job.title}</h3>
+                        <Badge variant={st.variant} className="shrink-0">
+                          <Icon className="h-3 w-3 mr-1" />
+                          {st.label}
+                        </Badge>
                       </div>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        {job.targetKeyword && <span>KW: {job.targetKeyword}</span>}
+                        <span>{CONTENT_TYPE_LABEL[job.contentType] ?? job.contentType}</span>
+                        <span>~{job.targetLength} từ</span>
+                        <span>{job.language}</span>
+                        <span>{job.createdAt.toLocaleDateString("vi-VN")}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
-      </main>
+      )}
     </div>
   );
 }

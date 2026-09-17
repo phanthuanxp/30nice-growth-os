@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Search, AlertCircle, AlertTriangle, Info, CheckCircle2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,11 +113,7 @@ export default async function SeoAiPage({ searchParams }: Props) {
         }
       />
 
-      {isDemo && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          Dữ liệu demo — kết nối database để phân tích SEO thật
-        </div>
-      )}
+      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Không thể phân tích SEO thật cho tới khi database hoạt động." />}
 
       {/* Score + Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
