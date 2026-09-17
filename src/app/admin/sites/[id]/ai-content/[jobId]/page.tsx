@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getTenantById } from "@/server/queries/tenants";
 import { getAiContentJob } from "@/server/queries/ai-content";
-import { SiteSidebar } from "@/components/admin/site-sidebar";
 import { AiContentJobClient } from "./job-client";
 
 interface Props {
@@ -53,16 +52,8 @@ export default async function AiContentJobPage({ params }: Props) {
   const brief = job.brief as Record<string, unknown> | null;
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <SiteSidebar
-        siteId={id}
-        siteName={tenant.name}
-        siteSlug={tenant.slug}
-        primaryDomain={tenant.primaryDomain}
-      />
-      <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
-        <div className="max-w-4xl mx-auto">
-          <PageHeader
+    <div className="max-w-4xl mx-auto">
+      <PageHeader
             title={job.title}
             description={`${job.contentType} · ${job.targetKeyword ?? ""} · ${job.language}`}
             action={
@@ -148,17 +139,15 @@ export default async function AiContentJobPage({ params }: Props) {
             </Card>
           )}
 
-          {/* Actions */}
-          <AiContentJobClient
-            jobId={jobId}
-            tenantId={id}
-            status={job.status}
-            hasBrief={!!brief}
-            hasDraft={!!job.draftHtml}
-            existingPostId={job.postId}
-          />
-        </div>
-      </main>
+      {/* Actions */}
+      <AiContentJobClient
+        jobId={jobId}
+        tenantId={id}
+        status={job.status}
+        hasBrief={!!brief}
+        hasDraft={!!job.draftHtml}
+        existingPostId={job.postId}
+      />
     </div>
   );
 }

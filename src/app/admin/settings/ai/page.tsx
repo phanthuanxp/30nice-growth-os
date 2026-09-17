@@ -43,7 +43,7 @@ export default async function AiSettingsPage() {
         description="Quản lý API key, chọn provider mặc định và dự phòng cho toàn hệ thống."
       />
 
-      {isDemo && <DemoDataBanner reason="Chưa kết nối database. Cấu hình provider bên dưới sẽ không được lưu cho tới khi database hoạt động." />}
+      {isDemo && <DemoDataBanner title="Không kết nối được tới database." reason="Trạng thái biến môi trường bên dưới vẫn là thật, nhưng cấu hình đã lưu trong database chưa tải được và sẽ không lưu được cho tới khi database hoạt động." />}
 
       {/* Current default/fallback summary */}
       <Card>

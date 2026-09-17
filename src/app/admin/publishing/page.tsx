@@ -112,7 +112,7 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
     <div className="space-y-6">
       <PageHeader title="Lịch xuất bản" description="Theo dõi content plan, draft, lịch đăng và trạng thái xuất bản cho mạng lưới site/subdomain." />
 
-      {isDemo && <DemoDataBanner reason="Cần database/migration để xem publishing calendar thật." />}
+      {isDemo && <DemoDataBanner title="Không kết nối được tới database." reason="Publishing calendar bên dưới đang trống, không phải dữ liệu mẫu. Cần database/migration để xem lịch thật." />}
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
