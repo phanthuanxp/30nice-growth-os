@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantById } from "@/server/queries/tenants";
 import { listRedirects } from "@/server/queries/redirects";
-import { SiteSidebar } from "@/components/admin/site-sidebar";
 import { RedirectsClient } from "./redirects-client";
 
 interface Props {
@@ -29,30 +28,20 @@ export default async function RedirectsPage({ params }: Props) {
   const redirects = await listRedirects(id).catch(() => []);
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <SiteSidebar
-        siteId={id}
-        siteName={tenant.name}
-        siteSlug={tenant.slug}
-        primaryDomain={tenant.primaryDomain}
+    <div className="max-w-4xl mx-auto">
+      <PageHeader
+        title="Quản lý redirect"
+        description={`Quản lý URL redirects cho ${tenant.primaryDomain ?? tenant.slug}. Áp dụng ngay lập tức.`}
       />
-      <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
-        <div className="max-w-4xl mx-auto">
-          <PageHeader
-            title="Quản lý redirect"
-            description={`Quản lý URL redirects cho ${tenant.primaryDomain ?? tenant.slug}. Áp dụng ngay lập tức.`}
-          />
 
-          <RedirectsClient
-            tenantId={id}
-            initialRedirects={redirects.map((r) => ({
-              ...r,
-              createdAt: r.createdAt.toISOString(),
-              updatedAt: r.updatedAt.toISOString(),
-            }))}
-          />
-        </div>
-      </main>
+      <RedirectsClient
+        tenantId={id}
+        initialRedirects={redirects.map((r) => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+        }))}
+      />
     </div>
   );
 }

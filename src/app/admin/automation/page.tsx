@@ -53,7 +53,7 @@ export default async function AutomationPage() {
         description="Tự động hóa SEO check, đăng bài, thông báo lead và nhập dữ liệu."
       />
 
-      {isDemo && <DemoDataBanner reason="Cần kết nối database để tạo và chạy automation jobs." />}
+      {isDemo && <DemoDataBanner title="Không kết nối được tới database." reason="Danh sách job bên dưới đang trống, không phải dữ liệu mẫu. Cần kết nối database để tạo và chạy automation jobs." />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create form */}
