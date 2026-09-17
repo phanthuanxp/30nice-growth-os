@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BarChart2, TrendingUp, Users, Globe } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -78,11 +79,7 @@ export default async function AnalyticsPage() {
         description="Phân tích traffic, leads và hiệu suất nội dung."
       />
 
-      {isDemo && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          Dữ liệu demo — kết nối database để xem analytics thật
-        </div>
-      )}
+      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Toàn bộ chỉ số bên dưới là dữ liệu mẫu." />}
 
       {/* KPI summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

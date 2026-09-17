@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, ExternalLink, Globe, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,8 @@ export default async function SitesPage() {
           </Link>
         }
       />
+
+      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Danh sách site bên dưới chỉ là dữ liệu mẫu." />}
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
@@ -171,11 +174,6 @@ export default async function SitesPage() {
         </Card>
       )}
 
-      {isDemo && (
-        <p className="mt-4 text-xs text-slate-400 text-center">
-          Dữ liệu demo · Kết nối database để hiển thị dữ liệu thật
-        </p>
-      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +70,8 @@ export default async function PagesPage() {
           </Link>
         }
       />
+
+      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Danh sách page bên dưới chỉ là dữ liệu mẫu." />}
 
       <div className="mb-5 flex flex-wrap gap-2">
         <span className="text-xs text-slate-500 font-medium self-center">Block types:</span>
@@ -147,9 +150,6 @@ export default async function PagesPage() {
         </Card>
       )}
 
-      {isDemo && (
-        <p className="mt-4 text-xs text-slate-400 text-center">Dữ liệu demo · Kết nối database để sửa pages</p>
-      )}
     </div>
   );
 }

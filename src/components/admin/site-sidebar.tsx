@@ -39,7 +39,7 @@ export function SiteSidebar({ siteId, siteName, siteSlug, primaryDomain }: SiteS
     { label: "News / Reviews", href: `${base}/blog`, icon: BookOpen },
     { label: "Media", href: `${base}/media`, icon: Image },
     { label: "Menus", href: `${base}/menus`, icon: Navigation },
-    { label: "Submissions", href: `${base}/submissions`, icon: FileInput },
+    { label: "Form liên hệ", href: `${base}/forms`, icon: FileInput },
     { label: "Giao diện", href: `${base}/theme`, icon: Palette },
     { label: "AI Content", href: `${base}/ai-content`, icon: Brain },
     { label: "Content Plan", href: `${base}/content-plan`, icon: Map },
