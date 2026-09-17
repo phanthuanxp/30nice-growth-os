@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDays, KanbanSquare, Newspaper, Clock } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/server/db";
@@ -111,7 +112,7 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
     <div className="space-y-6">
       <PageHeader title="Lịch xuất bản" description="Theo dõi content plan, draft, lịch đăng và trạng thái xuất bản cho mạng lưới site/subdomain." />
 
-      {isDemo && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Cần database/migration để xem publishing calendar thật.</div>}
+      {isDemo && <DemoDataBanner reason="Cần database/migration để xem publishing calendar thật." />}
 
       <div className="grid gap-4 md:grid-cols-4">
         {[

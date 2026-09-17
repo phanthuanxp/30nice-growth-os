@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Zap, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,11 +53,7 @@ export default async function AutomationPage() {
         description="Tự động hóa SEO check, đăng bài, thông báo lead và nhập dữ liệu."
       />
 
-      {isDemo && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          Cần kết nối database để tạo và chạy automation jobs.
-        </div>
-      )}
+      {isDemo && <DemoDataBanner reason="Cần kết nối database để tạo và chạy automation jobs." />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create form */}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Brain, Info } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AiProviderCard } from "@/components/admin/ai-provider-card";
 import { getAiProviderConfigs } from "@/server/queries/ai-providers";
@@ -42,11 +43,7 @@ export default async function AiSettingsPage() {
         description="Quản lý API key, chọn provider mặc định và dự phòng cho toàn hệ thống."
       />
 
-      {isDemo && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          Chưa kết nối database — cấu hình sẽ được lưu khi database hoạt động.
-        </div>
-      )}
+      {isDemo && <DemoDataBanner reason="Chưa kết nối database. Cấu hình provider bên dưới sẽ không được lưu cho tới khi database hoạt động." />}
 
       {/* Current default/fallback summary */}
       <Card>
