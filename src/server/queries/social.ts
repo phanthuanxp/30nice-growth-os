@@ -346,3 +346,51 @@ export async function getSocialAnalytics(days = 30) {
     recentComments: pendingComments,
   };
 }
+
+export async function getSocialPageWithExternalPosts(pageId: string, filter?: string) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  const page = await prisma.socialPage.findFirst({
+    where: { id: pageId, workspace: { tenant: tenantWhere } },
+    include: {
+      workspace: { include: { tenant: { select: { id: true, name: true } } } },
+      connection: { select: { connectionStatus: true, lastValidatedAt: true, tokenExpiresAt: true, grantedScopes: true } },
+    },
+  });
+  if (!page) return null;
+  const postType = filter && filter !== "newest" ? filter.toUpperCase() : undefined;
+  const posts = await prisma.socialExternalPost.findMany({
+    where: { socialPageId: page.id, postType: postType === "TEXT" || postType === "IMAGE" || postType === "VIDEO" || postType === "REEL" ? postType : undefined },
+    orderBy: [{ createdTime: "desc" }, { syncedAt: "desc" }],
+    take: 100,
+  });
+  return { page, posts };
+}
+
+export async function getSocialWebhookDiagnostics() {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  const pages = await prisma.socialPage.findMany({
+    where: { workspace: { tenant: tenantWhere }, externalPageId: { not: null } },
+    include: {
+      workspace: { include: { tenant: { select: { id: true, name: true } } } },
+      connection: { select: { connectionStatus: true, lastValidatedAt: true, grantedScopes: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 100,
+  });
+  const externalIds = pages.map((page) => page.externalPageId).filter((id): id is string => Boolean(id));
+  const events = await prisma.socialWebhookEvent.findMany({
+    where: { externalPageId: { in: externalIds } },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+  const byPage = new Map<string, typeof events>();
+  for (const event of events) {
+    if (!event.externalPageId) continue;
+    const bucket = byPage.get(event.externalPageId) ?? [];
+    bucket.push(event);
+    byPage.set(event.externalPageId, bucket);
+  }
+  return { pages, events, byPage };
+}

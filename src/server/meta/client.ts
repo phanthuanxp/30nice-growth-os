@@ -205,9 +205,9 @@ export async function getMetaPage(pageId: string, pageToken: string) {
 export async function getMetaPagePosts(pageId: string, pageToken: string, limit = 10) {
   const payload = await graphRequest(`${encodeURIComponent(pageId)}/posts`, {
     token: pageToken,
-    params: { fields: "id,message,created_time,permalink_url,status_type", limit: String(Math.min(Math.max(limit, 1), 25)) },
+    params: { fields: "id,message,created_time,permalink_url,status_type,attachments{media,type,url,subattachments}", limit: String(Math.min(Math.max(limit, 1), 25)) },
   });
-  return z.object({ data: z.array(z.object({ id: z.string(), message: z.string().optional(), created_time: z.string().optional(), permalink_url: z.string().optional(), status_type: z.string().optional() })) }).parse(payload).data;
+  return z.object({ data: z.array(z.object({ id: z.string(), message: z.string().optional(), created_time: z.string().optional(), permalink_url: z.string().optional(), status_type: z.string().optional(), attachments: z.unknown().optional() })) }).parse(payload).data;
 }
 
 export async function publishMetaPagePost(pageId: string, pageToken: string, message: string) {

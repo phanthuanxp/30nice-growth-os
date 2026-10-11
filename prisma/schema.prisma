@@ -106,6 +106,7 @@ model Tenant {
   sourceArticles        SourceArticle[]
   crawlJobs             CrawlJob[]
   socialWorkspaces      SocialWorkspace[]
+  socialExternalPosts   SocialExternalPost[]
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
@@ -496,6 +497,7 @@ model SocialWorkspace {
   pages     SocialPage[]
   groups    SocialGroup[]
   plans     SocialContentPlan[]
+  externalPosts SocialExternalPost[]
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
 
@@ -526,6 +528,7 @@ model SocialPage {
   publishTargets SocialPublishTarget[]
   oauthSessions  MetaOAuthSession[]
   comments       SocialComment[]
+  externalPosts  SocialExternalPost[]
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -722,6 +725,32 @@ model SocialWebhookEvent {
 
   @@index([externalPageId, createdAt])
   @@index([processedAt, createdAt])
+}
+
+model SocialExternalPost {
+  id             String         @id @default(cuid())
+  tenantId       String
+  workspaceId    String
+  socialPageId   String
+  platform       SocialPlatform @default(FACEBOOK)
+  externalPostId String
+  message        String?
+  permalinkUrl   String?
+  postType       String?
+  mediaJson      Json?
+  createdTime    DateTime?
+  syncedAt       DateTime
+  rawMetadataJson Json?
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workspace      SocialWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  socialPage     SocialPage     @relation(fields: [socialPageId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([socialPageId, externalPostId])
+  @@index([tenantId, createdTime])
+  @@index([workspaceId, syncedAt])
+  @@index([socialPageId, createdTime])
 }
 
 /// A comment on a published Page post, rebuilt from the feed webhook.

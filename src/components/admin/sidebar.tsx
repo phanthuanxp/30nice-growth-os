@@ -77,6 +77,7 @@ const NAV: NavGroup[] = [
       { label: "Kế hoạch nội dung", href: "/admin/social/planner", icon: Calendar },
       { label: "Lịch Social", href: "/admin/social/calendar", icon: Calendar },
       { label: "Publisher", href: "/admin/social/publishing", icon: UploadCloud },
+      { label: "Webhook Diagnostics", href: "/admin/social/webhooks", icon: Workflow },
       { label: "Group Library", href: "/admin/social/groups", icon: UsersRound },
       { label: "Báo cáo Social", href: "/admin/social/analytics", icon: BarChart2 },
     ],
@@ -113,7 +114,7 @@ export function Sidebar() {
             30
           </div>
           <div className="leading-tight">
-            <p className="text-xs font-bold text-white">GFVGO</p>
+            <p className="text-xs font-bold text-white">30Nice</p>
             <p className="text-[10px] text-slate-400">News CMS</p>
           </div>
         </Link>
@@ -166,7 +167,7 @@ export function Sidebar() {
         className="px-4 py-4 shrink-0"
         style={{ borderTop: "1px solid var(--sidebar-border)" }}
       >
-        <p className="text-[10px] text-slate-600 text-center">GFVGO · News CMS v2</p>
+        <p className="text-[10px] text-slate-600 text-center">30Nice · News CMS v2</p>
       </div>
     </aside>
   );
