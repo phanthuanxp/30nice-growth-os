@@ -10,8 +10,10 @@ import { writeAuditLog } from "@/server/audit/log";
 import { decryptToken } from "@/server/crypto/token-vault";
 import { debugMetaToken, getMetaConfig, getMetaPage, META_PUBLISH_SCOPES, META_READ_SCOPES, subscribeMetaPageWebhooks } from "@/server/meta/client";
 import { processSocialPublishQueue } from "@/server/social/publisher";
+import { duplicateExternalPostAsDraft, syncMetaPagePosts } from "@/server/meta/posts-service";
 
 export type MetaActionResult = { ok: boolean; error?: string };
+export type MetaPostsActionResult = { ok: boolean; error?: string; synced?: number; id?: string };
 
 const selectSchema = z.object({ oauthSessionId: z.string().min(1), externalPageId: z.string().min(1) });
 const pageMetadataSchema = z.array(z.object({ id: z.string(), name: z.string(), category: z.string().optional(), tasks: z.array(z.string()).optional(), link: z.string().optional() }));
@@ -20,6 +22,19 @@ function revalidateMeta() {
   revalidatePath("/admin/social");
   revalidatePath("/admin/social/pages");
   revalidatePath("/admin/social/publishing");
+}
+
+export async function syncMetaPagePostsAction(pageId: string): Promise<MetaPostsActionResult> {
+  const result = await syncMetaPagePosts(pageId, 25);
+  revalidatePath(`/admin/social/pages/${pageId}/posts`);
+  revalidatePath("/admin/social/pages");
+  return result;
+}
+
+export async function duplicateExternalPostAsDraftAction(postId: string): Promise<MetaPostsActionResult> {
+  const result = await duplicateExternalPostAsDraft(postId);
+  revalidatePath("/admin/social/planner");
+  return result;
 }
 
 function tokenExpiry(debug: { expires_at?: number; data_access_expires_at?: number }) {
