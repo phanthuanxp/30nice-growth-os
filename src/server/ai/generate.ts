@@ -1,25 +1,28 @@
 import { getAiProviderConfig, getDefaultAiProvider } from "@/server/queries/ai-providers";
 
 type GenResult = { text: string; provider: string };
+type GenOptions = { maxTokens?: number; temperature?: number };
 
-async function callClaude(apiKey: string, model: string | undefined, system: string, prompt: string): Promise<string> {
+async function callClaude(apiKey: string, model: string | undefined, system: string, prompt: string, options: GenOptions): Promise<string> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey });
   const message = await client.messages.create({
     model: model ?? "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: options.maxTokens ?? 1024,
+    temperature: options.temperature,
     system,
     messages: [{ role: "user", content: prompt }],
   });
   return message.content[0].type === "text" ? message.content[0].text : "";
 }
 
-async function callOpenAI(apiKey: string, model: string | undefined, system: string, prompt: string): Promise<string> {
+async function callOpenAI(apiKey: string, model: string | undefined, system: string, prompt: string, options: GenOptions): Promise<string> {
   const { default: OpenAI } = await import("openai");
   const client = new OpenAI({ apiKey });
   const completion = await client.chat.completions.create({
     model: model ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-    max_tokens: 1024,
+    max_tokens: options.maxTokens ?? 1024,
+    temperature: options.temperature,
     messages: [
       { role: "system", content: system },
       { role: "user", content: prompt },
@@ -28,12 +31,16 @@ async function callOpenAI(apiKey: string, model: string | undefined, system: str
   return completion.choices[0]?.message?.content ?? "";
 }
 
-async function callGemini(apiKey: string, model: string | undefined, system: string, prompt: string): Promise<string> {
+async function callGemini(apiKey: string, model: string | undefined, system: string, prompt: string, options: GenOptions): Promise<string> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(apiKey);
   const gModel = genAI.getGenerativeModel({
     model: model ?? "gemini-2.0-flash",
     systemInstruction: system,
+    generationConfig: {
+      maxOutputTokens: options.maxTokens ?? 1024,
+      temperature: options.temperature,
+    },
   });
   const result = await gModel.generateContent(prompt);
   return result.response.text();
@@ -43,7 +50,7 @@ async function callGemini(apiKey: string, model: string | undefined, system: str
  * Generate text using the default active AI provider (DB config first, env fallback).
  * Throws if no provider is configured.
  */
-export async function aiGenerate(system: string, prompt: string): Promise<GenResult> {
+export async function aiGenerate(system: string, prompt: string, options: GenOptions = {}): Promise<GenResult> {
   // 1. Default provider from DB
   let provider: string | null = null;
   let apiKey: string | null = null;
@@ -94,13 +101,13 @@ export async function aiGenerate(system: string, prompt: string): Promise<GenRes
   let text: string;
   switch (provider) {
     case "claude":
-      text = await callClaude(apiKey, model, system, prompt);
+      text = await callClaude(apiKey, model, system, prompt, options);
       break;
     case "openai":
-      text = await callOpenAI(apiKey, model, system, prompt);
+      text = await callOpenAI(apiKey, model, system, prompt, options);
       break;
     case "gemini":
-      text = await callGemini(apiKey, model, system, prompt);
+      text = await callGemini(apiKey, model, system, prompt, options);
       break;
     default:
       throw new Error(`Provider không hỗ trợ: ${provider}`);

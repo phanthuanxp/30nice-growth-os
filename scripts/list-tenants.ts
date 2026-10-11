@@ -28,7 +28,7 @@ async function main() {
   const tenants = await prisma.tenant.findMany({
     include: {
       domains: true,
-      _count: { select: { pages: true, posts: true, leads: true, mediaAssets: true, menus: true } },
+      _count: { select: { pages: true, posts: true, formSubmissions: true, mediaAssets: true, menus: true, socialWorkspaces: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -41,7 +41,7 @@ async function main() {
     console.log(`  primaryDomain: ${t.primaryDomain ?? "(none)"}`);
     console.log(`  status: ${t.status}`);
     console.log(`  domains: ${t.domains.map((d) => d.host).join(", ") || "(none)"}`);
-    console.log(`  counts: pages=${t._count.pages} posts=${t._count.posts} leads=${t._count.leads} media=${t._count.mediaAssets} menus=${t._count.menus}`);
+    console.log(`  counts: pages=${t._count.pages} posts=${t._count.posts} formSubmissions=${t._count.formSubmissions} media=${t._count.mediaAssets} menus=${t._count.menus} socialWorkspaces=${t._count.socialWorkspaces}`);
     console.log("");
   }
 }

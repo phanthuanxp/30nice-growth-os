@@ -13,6 +13,16 @@ export async function GET() {
 
   let urls: { loc: string; lastmod?: string; priority: string; changefreq: string }[] = [
     { loc: `${base}/`, priority: "1.0", changefreq: "daily" },
+    { loc: `${base}/gioi-thieu`, priority: "0.8", changefreq: "monthly" },
+    { loc: `${base}/tinh-nang`, priority: "0.8", changefreq: "monthly" },
+    { loc: `${base}/giai-phap`, priority: "0.8", changefreq: "monthly" },
+    { loc: `${base}/lien-he`, priority: "0.7", changefreq: "monthly" },
+    { loc: `${base}/chinh-sach-bao-mat`, priority: "0.5", changefreq: "yearly" },
+    { loc: `${base}/dieu-khoan-su-dung`, priority: "0.5", changefreq: "yearly" },
+    { loc: `${base}/xoa-du-lieu`, priority: "0.5", changefreq: "yearly" },
+    { loc: `${base}/privacy-policy`, priority: "0.5", changefreq: "yearly" },
+    { loc: `${base}/terms-of-service`, priority: "0.5", changefreq: "yearly" },
+    { loc: `${base}/data-deletion`, priority: "0.5", changefreq: "yearly" },
     { loc: `${base}/blog`, priority: "0.8", changefreq: "daily" },
   ];
 

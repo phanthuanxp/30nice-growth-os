@@ -33,7 +33,7 @@ export default async function ImportPage() {
   let tenants: { id: string; name: string }[] = [];
   let sources: { id: string; name: string; baseUrl: string; sourceType: string; crawlStatus: string; articles: number; lastCrawledAt?: Date | null }[] = [];
   let recentArticles: { id: string; title: string | null; url: string; status: string; targetKeyword: string | null; draftPostId?: string | null; scheduledPublishAt?: Date | null; draftPost?: { id: string; title: string; status: string; qualityScore: number | null; seoScore: number | null } | null }[] = [];
-  let pipelineCounts = { discovered: 0, ready: 0, draft: 0, published: 0, failed: 0 };
+  const pipelineCounts = { discovered: 0, ready: 0, draft: 0, published: 0, failed: 0 };
 
   try {
     const rows = await getTenants();
@@ -102,7 +102,7 @@ export default async function ImportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Globe2 className="h-4 w-4 text-indigo-500" />Content Sources</CardTitle>
-            <CardDescription>Bấm "Full Pipeline" để crawl → extract → rewrite tất cả trong một lần.</CardDescription>
+            <CardDescription>Bấm &quot;Full Pipeline&quot; để crawl → extract → rewrite tất cả trong một lần.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {sources.length === 0 ? (

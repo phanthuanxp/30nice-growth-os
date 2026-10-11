@@ -7,13 +7,13 @@ _Last updated: 2026-06-12_
 Project path:
 
 ```text
-/root/.openclaw/workspace/projects/30nice-growth-os
+/root/.openclaw/workspace/projects/gfvgo
 ```
 
 Production/admin domain:
 
 ```text
-https://admin.30nice.vn
+https://gfvgo.com
 ```
 
 Current public tenant/site:
@@ -26,12 +26,12 @@ https://www.taxibacninh.vn
 Upgrade archive supplied by owner:
 
 ```text
-/root/.openclaw/workspace/projects/30nice-growth-os/30nice-upgrade-v2-full.tar.gz
+/root/.openclaw/workspace/projects/gfvgo/gfvgo-upgrade-v2-full.tar.gz
 ```
 
 Current status verified before this plan:
 
-- `admin.30nice.vn` is live and redirects unauthenticated users to `/login`.
+- `gfvgo.com` is live and redirects unauthenticated users to `/login`.
 - `taxibacninh.vn` and `www.taxibacninh.vn` return `200 OK`.
 - Live public title: `Taxi Bắc Ninh - Đặt Xe 24/7, Giá Trọn Gói | 30Nice Growth OS`.
 - `npm run typecheck` passed.
@@ -362,7 +362,7 @@ Tasks:
 Suggested commands should be adapted to the actual production location and DB credentials:
 
 ```bash
-cd /root/.openclaw/workspace/projects/30nice-growth-os
+cd /root/.openclaw/workspace/projects/gfvgo
 mkdir -p .upgrade-work/backups .upgrade-work/extracted
 
 # Source backup, excluding heavy/generated directories where appropriate.
@@ -374,7 +374,7 @@ cp -a .env .upgrade-work/backups/.env.pre-upgrade.$(date +%Y%m%d-%H%M%S) 2>/dev/
 cp -a .env.local .upgrade-work/backups/.env.local.pre-upgrade.$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
 
 # Extract supplied upgrade archive to temp only.
-tar -xzf 30nice-upgrade-v2-full.tar.gz -C .upgrade-work/extracted
+tar -xzf gfvgo-upgrade-v2-full.tar.gz -C .upgrade-work/extracted
 ```
 
 Database backup example:
@@ -411,8 +411,8 @@ npm run build
 Smoke tests:
 
 ```text
-https://admin.30nice.vn/login
-https://admin.30nice.vn/admin/dashboard
+https://gfvgo.com/login
+https://gfvgo.com/admin/dashboard
 https://taxibacninh.vn
 https://taxibacninh.vn/blog
 ```
@@ -575,13 +575,13 @@ Required process:
 ```bash
 mkdir -p .upgrade-work/extracted
 rm -rf .upgrade-work/extracted/*
-tar -xzf 30nice-upgrade-v2-full.tar.gz -C .upgrade-work/extracted
+tar -xzf gfvgo-upgrade-v2-full.tar.gz -C .upgrade-work/extracted
 ```
 
 2. List archive content:
 
 ```bash
-tar -tzf 30nice-upgrade-v2-full.tar.gz | sort
+tar -tzf gfvgo-upgrade-v2-full.tar.gz | sort
 ```
 
 3. Compare file-by-file:
@@ -634,18 +634,18 @@ Use this brief when asking Claude CLI to work on the project:
 
 ```text
 You are upgrading 30Nice Growth OS at:
-/root/.openclaw/workspace/projects/30nice-growth-os
+/root/.openclaw/workspace/projects/gfvgo
 
-Read 30NICE_GROWTH_OS_UPGRADE_PLAN.md first and follow it.
+Read GFVGO_GROWTH_OS_UPGRADE_PLAN.md first and follow it.
 
 Current production/admin domain:
-https://admin.30nice.vn
+https://gfvgo.com
 
 Current public tenant:
 https://taxibacninh.vn
 
 Supplied upgrade archive:
-/root/.openclaw/workspace/projects/30nice-growth-os/30nice-upgrade-v2-full.tar.gz
+/root/.openclaw/workspace/projects/gfvgo/gfvgo-upgrade-v2-full.tar.gz
 
 Do not blindly extract over the project.
 Do not run prisma db push --accept-data-loss unless a DB backup exists and you report the impact first.
@@ -666,7 +666,7 @@ Deliverables:
    - audit log if feasible
 4. Run npm run typecheck.
 5. Run npm run build.
-6. Smoke test admin.30nice.vn/login and taxibacninh.vn.
+6. Smoke test gfvgo.com/login and taxibacninh.vn.
 7. Report changed files, migration impact, and rollback instructions.
 ```
 
@@ -683,7 +683,7 @@ Deliverables:
 
 ## 12. Product Direction Update — AI Travel News CMS (2026-06-22)
 
-Owner direction: `30nice-growth-os` / `admin.30nice.vn` should focus on English-language travel, news, and review sites for foreign visitors. Lead generation, forms, and booking flows are paused and should not receive near-term upgrade effort.
+Owner direction: `gfvgo` / `gfvgo.com` should focus on English-language travel, news, and review sites for foreign visitors. Lead generation, forms, and booking flows are paused and should not receive near-term upgrade effort.
 
 ### 12.1 New Core Product Loop
 

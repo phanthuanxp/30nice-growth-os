@@ -95,7 +95,7 @@ export default function LoginPage() {
           >
             30
           </div>
-          <h1 className="text-2xl font-bold text-white">30Nice Growth OS</h1>
+          <h1 className="text-2xl font-bold text-white">GFVGO Growth Platform</h1>
           <p className="text-slate-400 text-sm mt-1">
             Đăng nhập vào hệ thống quản trị
           </p>

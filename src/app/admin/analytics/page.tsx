@@ -167,7 +167,6 @@ export default async function AnalyticsPage() {
             data={pageviewsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
             color="#06b6d4"
             height={110}
-            formatValue={(v) => `${v} lượt`}
           />
         </CardContent>
       </Card>

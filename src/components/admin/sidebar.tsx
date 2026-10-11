@@ -23,6 +23,9 @@ import {
   UserCog,
   ShieldCheck,
   Rss,
+  Share2,
+  Flag,
+  UsersRound,
 } from "lucide-react";
 
 interface NavItem {
@@ -64,6 +67,19 @@ const NAV: NavGroup[] = [
       { label: "Job xuất bản", href: "/admin/automation", icon: Workflow },
       { label: "RSS + Crawl nguồn", href: "/admin/import", icon: Rss, badge: "New" },
       { label: "Phân tích", href: "/admin/analytics", icon: BarChart2 },
+    ],
+  },
+  {
+    title: "Social Growth OS",
+    items: [
+      { label: "Tổng quan Social", href: "/admin/social", icon: Share2, badge: "New" },
+      { label: "Page Factory", href: "/admin/social/pages", icon: Flag },
+      { label: "Kế hoạch nội dung", href: "/admin/social/planner", icon: Calendar },
+      { label: "Lịch Social", href: "/admin/social/calendar", icon: Calendar },
+      { label: "Publisher", href: "/admin/social/publishing", icon: UploadCloud },
+      { label: "Webhook Diagnostics", href: "/admin/social/webhooks", icon: Workflow },
+      { label: "Group Library", href: "/admin/social/groups", icon: UsersRound },
+      { label: "Báo cáo Social", href: "/admin/social/analytics", icon: BarChart2 },
     ],
   },
   {
@@ -117,7 +133,7 @@ export function Sidebar() {
               {group.items.map((item) => {
                 const active =
                   pathname === item.href ||
-                  (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+                  (!["/admin/dashboard", "/admin/social"].includes(item.href) && pathname.startsWith(item.href));
                 return (
                   <li key={item.href}>
                     <Link

@@ -4,18 +4,10 @@ import { fetchSitemapUrls, fetchRssUrls } from "@/server/content/sitemap-parser"
 import { extractArticleFromUrl } from "@/server/content/extractor";
 import { rewriteArticleToPost } from "@/server/actions/rewrite-drafts";
 import { hashContent, normalizeSourceUrl, guessTitleFromUrl } from "@/server/content/source-utils";
-
-const CRON_SECRET = process.env.CRON_SECRET;
-
-function isAuthorized(req: NextRequest): boolean {
-  if (!CRON_SECRET) return false;
-  const bearer = req.headers.get("authorization");
-  const secret = req.nextUrl.searchParams.get("secret");
-  return bearer === `Bearer ${CRON_SECRET}` || secret === CRON_SECRET;
-}
+import { isAuthorizedCronRequest } from "@/server/http/cron-auth";
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
+  if (!isAuthorizedCronRequest(req.headers)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

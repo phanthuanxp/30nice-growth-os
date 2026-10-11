@@ -1,15 +1,15 @@
 #!/bin/bash
 # First-time VPS setup for 30Nice Growth OS
 # Run as root on the VPS: bash setup.sh
-# VPS: 5.189.185.36  |  App domain: admin.30nice.vn
+# VPS: 5.189.185.36  |  App domain: gfvgo.com
 
 set -e
 
-APP_DIR="/var/www/30nice-growth-os"
+APP_DIR="/var/www/gfvgo"
 APP_PORT=3001
 DB_NAME="growth_os_db"
 DB_USER="growth_os"
-GITHUB_REPO="https://github.com/YOUR_USERNAME/30nice-growth-os.git"   # <-- đổi lại
+GITHUB_REPO="https://github.com/YOUR_USERNAME/gfvgo.git"   # <-- đổi lại
 
 echo "=== [1/6] Cài Node.js 20 LTS ==="
 if ! command -v node &>/dev/null || [[ "$(node -v)" != v20* ]]; then
@@ -67,11 +67,11 @@ echo "  2. Build và khởi động app:"
 echo "       bash ${APP_DIR}/deploy/deploy.sh"
 echo ""
 echo "  3. Cài Nginx config:"
-echo "       cp ${APP_DIR}/deploy/nginx-admin.30nice.vn.conf /etc/nginx/sites-available/admin.30nice.vn"
-echo "       ln -sf /etc/nginx/sites-available/admin.30nice.vn /etc/nginx/sites-enabled/"
+echo "       cp ${APP_DIR}/deploy/nginx-gfvgo.com.conf /etc/nginx/sites-available/gfvgo.com"
+echo "       ln -sf /etc/nginx/sites-available/gfvgo.com /etc/nginx/sites-enabled/"
 echo "       nginx -t && systemctl reload nginx"
 echo ""
 echo "  4. Cài SSL:"
-echo "       certbot --nginx -d admin.30nice.vn"
+echo "       certbot --nginx -d gfvgo.com"
 echo ""
-echo "  5. Trỏ DNS: admin.30nice.vn A 5.189.185.36"
+echo "  5. Trỏ DNS: gfvgo.com A 5.189.185.36"

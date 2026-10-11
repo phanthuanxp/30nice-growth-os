@@ -75,7 +75,7 @@ function leadEmailHtml(payload: LeadNotificationPayload): string {
       ${payload.sourceDomain ? row("Website", payload.sourceDomain) : ""}
       ${row("Thời gian", new Date().toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }))}
     </table>
-    <div style="padding:12px 20px;border-top:1px solid #f1f5f9"><p style="margin:0;color:#94a3b8;font-size:11px">Gửi tự động bởi 30Nice Growth OS — liên hệ khách trong 5 phút để tăng tỉ lệ chốt.</p></div>
+    <div style="padding:12px 20px;border-top:1px solid #f1f5f9"><p style="margin:0;color:#94a3b8;font-size:11px">Gửi tự động bởi GFVGO Growth Platform — liên hệ khách trong 5 phút để tăng tỉ lệ chốt.</p></div>
   </div></body></html>`;
 }
 
@@ -88,7 +88,7 @@ export async function sendEmailNotification(
   if (!apiKey) {
     return { ok: false, error: "Chưa cấu hình Resend API key (RESEND_API_KEY hoặc trong Forms & Lead)" };
   }
-  const from = options?.from || process.env.RESEND_FROM || "30Nice Growth OS <onboarding@resend.dev>";
+  const from = options?.from || process.env.RESEND_FROM || "GFVGO Growth Platform <onboarding@resend.dev>";
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
