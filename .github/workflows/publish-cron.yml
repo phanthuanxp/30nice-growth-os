@@ -1,10 +1,9 @@
 name: Auto Publish Scheduled Posts
 
 on:
-  # Scheduled trigger temporarily disabled.
-  # To resume hourly publishing, restore:
-  # schedule:
-  #   - cron: "5 * * * *"
+  schedule:
+    # Every hour at minute 5
+    - cron: "5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -19,7 +18,7 @@ jobs:
             -X POST \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            "https://admin.30nice.vn/api/cron/publish")
+            "https://gfvgo.com/api/cron/publish")
 
           echo "HTTP status: $RESPONSE"
           cat /tmp/pub_response.json

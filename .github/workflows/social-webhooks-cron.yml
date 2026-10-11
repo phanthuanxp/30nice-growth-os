@@ -1,0 +1,23 @@
+name: Social Webhook Processing
+
+on:
+  schedule:
+    # Every 30 minutes: comments should surface quickly, and the same run prunes
+    # processed events so the table does not grow without bound.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  webhooks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process stored Meta feed webhooks
+        run: |
+          HTTP_STATUS="$(curl --silent --show-error \
+            --output /tmp/social-webhooks.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://admin.30nice.vn/api/cron/social-webhooks)"
+          cat /tmp/social-webhooks.json
+          test "$HTTP_STATUS" = "200"

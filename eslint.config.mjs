@@ -17,6 +17,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local agent/upgrade workspaces are not production source.
+    ".claude/**",
+    ".upgrade-work/**",
+    ".backup-v2/**",
+    "backups/**",
   ]),
 ]);
 

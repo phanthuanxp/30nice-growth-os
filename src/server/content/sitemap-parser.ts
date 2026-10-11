@@ -6,7 +6,7 @@ function stripCdata(s: string) {
 
 export async function fetchSitemapUrls(sitemapUrl: string, maxUrls = 500): Promise<DiscoveredUrl[]> {
   const res = await fetch(sitemapUrl, {
-    headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" },
+    headers: { "user-agent": "GFVGO/1.0 (+gfvgo.com)" },
     signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${sitemapUrl}`);
@@ -42,7 +42,7 @@ export async function fetchSitemapUrls(sitemapUrl: string, maxUrls = 500): Promi
 
 export async function fetchRssUrls(feedUrl: string, maxUrls = 200): Promise<DiscoveredUrl[]> {
   const res = await fetch(feedUrl, {
-    headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" },
+    headers: { "user-agent": "GFVGO/1.0 (+gfvgo.com)" },
     signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${feedUrl}`);

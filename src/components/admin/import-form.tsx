@@ -64,7 +64,7 @@ export function ImportForm({ tenants }: { tenants: { id: string; name: string }[
         label="WordPress URL *"
         name="wpBaseUrl"
         type="url"
-        placeholder="https://cms.30nice.vn"
+        placeholder="https://cms.gfvgo.com"
         required
       />
 

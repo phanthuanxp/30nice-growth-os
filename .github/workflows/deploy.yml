@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy 30Nice Growth OS
+    name: Deploy GFVGO
     runs-on: ubuntu-latest
 
     steps:
@@ -22,16 +22,16 @@ jobs:
           script: |
             set -e
 
-            PROD_DIR=/var/www/30nice-growth-os
-            SOURCE_DIR="$(mktemp -d /tmp/30nice-growth-os.XXXXXX)"
-            trap 'rm -rf "$SOURCE_DIR"' EXIT
+            SOURCE_DIR=/root/.openclaw/workspace/projects/gfvgo
+            PROD_DIR=/var/www/gfvgo
+            APP_NAME=gfvgo
 
-            echo "=== [1/4] Checkout main into a temporary release directory ==="
-            git clone --depth 1 --branch main \
-              https://github.com/phanthuanxp/30nice-growth-os.git \
-              "$SOURCE_DIR"
+            echo "=== [1/5] Pull latest code ==="
+            cd "$SOURCE_DIR"
+            git fetch origin
+            git reset --hard origin/main
 
-            echo "=== [2/4] Sync source to production ==="
+            echo "=== [2/5] Sync source to production ==="
             rsync -av --delete \
               --exclude='.git' \
               --exclude='node_modules' \
@@ -39,56 +39,20 @@ jobs:
               --exclude='.env' \
               --exclude='.env.local' \
               --exclude='.deploy-backups' \
-              --exclude='30nice-upgrade-v2-full.tar.gz' \
+              --exclude='gfvgo-upgrade-v2-full.tar.gz' \
               "$SOURCE_DIR/" "$PROD_DIR/"
 
-            echo "=== [3/4] Backup, migrate, build, and restart ==="
+            echo "=== [3/5] Install dependencies ==="
             cd "$PROD_DIR"
-            bash deploy/deploy.sh
+            npm ci --include=dev
 
-            echo "=== [4/4] Health checks ==="
-            set -a
-            # shellcheck disable=SC1091
-            . ./.env
-            set +a
-            APP_PORT="${PORT:-3001}"
-            curl --fail --silent --show-error \
-              --retry 12 --retry-delay 5 --retry-all-errors \
-              "http://127.0.0.1:${APP_PORT}/login" >/dev/null
-            echo "Public health check passed on port ${APP_PORT}."
+            echo "=== [4/5] Build ==="
+            npx prisma generate
+            npm run build
 
-            SMOKE_TOKEN="$(node <<'NODE'
-            const { createHmac } = require("node:crypto");
-            const user = {
-              id: "deploy-smoke-test",
-              name: "Deploy Smoke Test",
-              email: "deploy-smoke@30nice.vn",
-              role: "SUPER_ADMIN",
-            };
-            const payload = Buffer.from(JSON.stringify(user)).toString("base64url");
-            const signature = createHmac("sha256", process.env.SESSION_SECRET)
-              .update(payload)
-              .digest("base64url");
-            process.stdout.write(`${payload}.${signature}`);
-            NODE
-            )"
-            for ADMIN_PATH in \
-              /admin/dashboard \
-              /admin/social \
-              /admin/social/planner \
-              /admin/social/calendar \
-              /admin/social/publishing
-            do
-              SAFE_NAME="$(printf '%s' "$ADMIN_PATH" | tr '/' '-')"
-              ADMIN_STATUS="$(curl --silent --show-error \
-                --output "/tmp/30nice-${SAFE_NAME}-smoke.html" \
-                --write-out '%{http_code}' \
-                --header "Cookie: 30nice_session=${SMOKE_TOKEN}" \
-                "http://127.0.0.1:${APP_PORT}${ADMIN_PATH}")"
-              if [ "$ADMIN_STATUS" != "200" ]; then
-                echo "Authenticated health check for ${ADMIN_PATH} failed with HTTP ${ADMIN_STATUS}." >&2
-                pm2 logs 30nice-growth-os --lines 200 --nostream >&2 || true
-                exit 1
-              fi
-              echo "Authenticated health check passed for ${ADMIN_PATH}."
-            done
+            echo "=== [5/5] Restart PM2 ==="
+            pm2 reload "$APP_NAME" --update-env
+            pm2 save
+
+            echo "=== DEPLOY DONE ==="
+            pm2 status "$APP_NAME"

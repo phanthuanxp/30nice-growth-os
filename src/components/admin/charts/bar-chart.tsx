@@ -12,10 +12,10 @@ interface Props {
   color?: string;
   height?: number;
   showLabels?: boolean;
-  formatValue?: (v: number) => string;
+  valueSuffix?: string;
 }
 
-export function BarChart({ data, color = "#4f46e5", height = 120, showLabels = true, formatValue }: Props) {
+export function BarChart({ data, color = "#4f46e5", height = 120, showLabels = true, valueSuffix }: Props) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; point: DataPoint } | null>(null);
 
   if (!data || data.length === 0) {
@@ -82,7 +82,7 @@ export function BarChart({ data, color = "#4f46e5", height = 120, showLabels = t
           style={{ left: tooltip.x, top: Math.max(0, tooltip.y - 36) }}
         >
           <p className="font-semibold">{tooltip.point.label}</p>
-          <p className="text-slate-300">{formatValue ? formatValue(tooltip.point.value) : tooltip.point.value.toLocaleString()}</p>
+          <p className="text-slate-300">{`${tooltip.point.value.toLocaleString()}${valueSuffix ? ` ${valueSuffix}` : ""}`}</p>
         </div>
       )}
     </div>

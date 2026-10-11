@@ -38,7 +38,7 @@ export async function testTelegramNotification(siteId: string, botToken: string,
   return sendTelegram(botToken, chatId, {
     name: "Test Lead",
     phone: "0912345678",
-    message: "Đây là tin nhắn test từ hệ thống 30Nice Growth OS",
+    message: "Đây là tin nhắn test từ hệ thống GFVGO Growth Platform",
     sourceDomain: "admin-test",
   });
 }
@@ -50,7 +50,7 @@ export async function testZaloNotification(siteId: string, webhookUrl: string) {
   return sendZaloWebhook(webhookUrl, {
     name: "Test Lead",
     phone: "0912345678",
-    message: "Đây là tin nhắn test từ hệ thống 30Nice Growth OS",
+    message: "Đây là tin nhắn test từ hệ thống GFVGO Growth Platform",
     sourceDomain: "admin-test",
   });
 }

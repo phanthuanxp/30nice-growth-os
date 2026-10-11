@@ -1,6 +1,6 @@
-# 30Nice Growth OS — Phase 1 MVP
+# GFVGO — Phase 1 MVP
 
-Custom multi-tenant CMS and growth platform. Replaces WordPress gradually as the central CMS for 30Nice-managed websites.
+Custom multi-tenant CMS and growth platform. Replaces WordPress gradually as the central CMS for GFVGO-managed websites.
 
 ---
 
@@ -24,7 +24,7 @@ Custom multi-tenant CMS and growth platform. Replaces WordPress gradually as the
 
 ```bash
 git clone <repo>
-cd 30nice-growth-os
+cd gfvgo
 npm install
 ```
 
@@ -39,7 +39,7 @@ cp .env.example .env.local
 Edit `.env.local`:
 
 ```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/30nice_growth_os"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/gfvgo"
 SESSION_SECRET="generate-with-openssl-rand-hex-32-min-32-chars"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
@@ -53,7 +53,7 @@ openssl rand -hex 32
 
 ```bash
 # Create DB (if it doesn't exist)
-createdb 30nice_growth_os
+createdb gfvgo
 
 # Push schema
 npm run db:push
@@ -81,7 +81,7 @@ Open [http://localhost:3000](http://localhost:3000) — redirects to `/admin/das
 
 | Field | Value |
 |---|---|
-| Email | `admin@30nice.vn` |
+| Email | `admin@gfvgo.com` |
 | Password | `admin123` |
 | Role | `SUPER_ADMIN` |
 
@@ -192,42 +192,6 @@ Role checks via `can(role, minRole)` in `src/server/permissions/index.ts`.
 | Database-backed auth (bcrypt) | Phase 2 |
 | WordPress importer (real) | Phase 2 |
 | Page block editor UI | Phase 2 |
-
-## Social Growth OS — Phase A
-
-The admin now includes a multi-tenant Social Growth OS foundation:
-
-- `/admin/social` — social portfolio dashboard
-- `/admin/social/pages` — Social Workspace and Page Factory
-- `/admin/social/planner` — 30-day content plans and approval workflow
-- `/admin/social/groups` — approved Group library with manual-safe defaults
-
-Apply the Prisma migration before using the module. To add optional demo Page data while seeding, set `SEED_SOCIAL_DEMO=true`. Meta OAuth and live publishing are intentionally deferred to later phases; Phase A never stores or requests Facebook credentials.
-
-## Social Growth OS — Phase B
-
-Phase B adds the editorial operating system on top of the Phase A foundation:
-
-- AI-generated Page strategy with positioning, audience, brand voice and content pillars
-- AI-generated 30-day plan with complete captions, hooks, CTAs, hashtags and media briefs
-- Per-post editor with revision history
-- Draft → review → approval → scheduling workflow, including bulk plan actions
-- Multi-Page monthly calendar at `/admin/social/calendar`
-
-AI generation uses the existing provider configuration under `/admin/settings/ai`; no provider key is stored in Social records. Facebook OAuth, live Page publishing and Group distribution remain deferred to Phase C so production publishing cannot occur without explicit Meta permissions and approval controls.
-
-## Social Growth OS — Phase C
-
-Phase C adds official Facebook Page connectivity and publishing:
-
-- Meta OAuth with signed, expiring state and explicit Page selection
-- AES-256-GCM encrypted Page access tokens; tokens never reach the browser or logs
-- permission validation and Page webhook subscription
-- idempotent Page publish targets with bounded retry, lock recovery and audit logs
-- `/admin/social/publishing` queue with manual retry, published links and basic engagement counts
-- signed Meta webhook ingestion and scheduled insight synchronization
-
-Required production variables are documented in `deploy/env.production.example`. Publishing remains fail-closed until the Meta App credentials, webhook verify token and token encryption key are configured. Group automation is not part of Phase C; Group distribution stays manual-safe until Phase D.
 
 ---
 

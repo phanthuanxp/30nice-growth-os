@@ -29,15 +29,12 @@ export function DonutChart({ segments, size = 96, thickness = 18, centerLabel, c
   const cx = size / 2;
   const cy = size / 2;
 
-  const arcs = segments.reduce<Array<{ seg: Segment; dash: number; offset: number; fraction: number }>>(
-    (result, seg) => {
-      const fraction = seg.value / total;
-      const dash = fraction * circ;
-      const offset = result.reduce((sum, arc) => sum + arc.dash, 0);
-      return [...result, { seg, dash, offset, fraction }];
-    },
-    []
-  );
+  const arcs = segments.reduce<{ seg: Segment; dash: number; offset: number; fraction: number }[]>((acc, seg) => {
+    const fraction = seg.value / total;
+    const dash = fraction * circ;
+    const offset = acc.reduce((sum, arc) => sum + arc.dash, 0);
+    return [...acc, { seg, dash, offset, fraction }];
+  }, []);
 
   return (
     <div className="flex items-center gap-4">

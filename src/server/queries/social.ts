@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { requireAuth } from "@/server/auth/session";
+import { startOfDayInOffset, timezoneOffsetHours } from "@/server/social/group-rules";
 
 function accessibleTenantWhere(userId: string, role: string): Prisma.TenantWhereInput {
   if (role === "SUPER_ADMIN") return {};
@@ -148,12 +149,200 @@ export async function getSocialPublishing(socialPageId?: string) {
 export async function getSocialGroups(workspaceId?: string) {
   const user = await requireAuth();
   const tenantWhere = accessibleTenantWhere(user.id, user.role);
-  return prisma.socialGroup.findMany({
+  const groups = await prisma.socialGroup.findMany({
     where: { workspaceId: workspaceId || undefined, workspace: { tenant: tenantWhere } },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     include: {
-      workspace: { select: { id: true, name: true, tenant: { select: { id: true, name: true } } } },
+      workspace: { select: { id: true, name: true, timezone: true, tenant: { select: { id: true, name: true } } } },
       _count: { select: { publishTargets: true } },
     },
   });
+  if (groups.length === 0) return [];
+
+  // Recent activity drives the daily-limit and cooldown badges in the library.
+  // Groups can span workspaces on different time zones, so the calendar day is
+  // resolved per group rather than once for the whole list.
+  const now = new Date();
+  const ids = groups.map((group) => group.id);
+  const [recent, lastRows] = await Promise.all([
+    prisma.socialPublishTarget.findMany({
+      where: {
+        socialGroupId: { in: ids },
+        status: "PUBLISHED",
+        // Widest possible local day plus a margin, narrowed per group below.
+        publishedAt: { gte: new Date(now.getTime() - 48 * 60 * 60_000) },
+      },
+      select: { socialGroupId: true, publishedAt: true },
+    }),
+    // Cooldown can reach 30 days, so the last post is read exactly rather than
+    // from the 48-hour window above.
+    prisma.socialPublishTarget.groupBy({
+      by: ["socialGroupId"],
+      where: { socialGroupId: { in: ids }, status: "PUBLISHED", publishedAt: { not: null } },
+      _max: { publishedAt: true },
+    }),
+  ]);
+
+  const todayCandidates = new Map<string, Date[]>();
+  for (const row of recent) {
+    if (!row.socialGroupId || !row.publishedAt) continue;
+    const bucket = todayCandidates.get(row.socialGroupId);
+    if (bucket) bucket.push(row.publishedAt);
+    else todayCandidates.set(row.socialGroupId, [row.publishedAt]);
+  }
+  const lastPostedAt = new Map(lastRows.flatMap((row) => (row.socialGroupId ? [[row.socialGroupId, row._max.publishedAt] as const] : [])));
+
+  return groups.map((group) => {
+    const dayStart = startOfDayInOffset(now, timezoneOffsetHours(group.workspace.timezone, now));
+    return {
+      ...group,
+      postsToday: (todayCandidates.get(group.id) ?? []).filter((date) => date >= dayStart).length,
+      lastPostedAt: lastPostedAt.get(group.id) ?? null,
+    };
+  });
+}
+
+/** The group distribution queue: one row per group target, newest first. */
+export async function getGroupDistributionQueue(workspaceId?: string) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  return prisma.socialPublishTarget.findMany({
+    where: {
+      targetType: "GROUP",
+      socialGroup: workspaceId ? { workspaceId } : undefined,
+      socialPage: { workspace: { tenant: tenantWhere } },
+    },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+    take: 200,
+    include: {
+      content: { select: { id: true, title: true, topic: true, status: true } },
+      socialGroup: { select: { id: true, name: true, groupUrl: true, mode: true, status: true } },
+      socialPage: { select: { id: true, name: true } },
+    },
+  });
+}
+
+/** Groups a given content item may be distributed into, plus its existing targets. */
+export async function getSocialContentDistribution(contentId: string) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  const content = await prisma.socialContent.findFirst({
+    where: { id: contentId, socialPage: { workspace: { tenant: tenantWhere } } },
+    select: { id: true, status: true, socialPage: { select: { workspaceId: true } } },
+  });
+  if (!content) return null;
+
+  const [groups, targets] = await Promise.all([
+    prisma.socialGroup.findMany({
+      where: { workspaceId: content.socialPage.workspaceId, status: "APPROVED", mode: { not: "DISABLED" } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, mode: true, topics: true, dailyPostLimit: true, cooldownHours: true, allowLinks: true, allowPromotion: true, apiVerifiedAt: true },
+    }),
+    prisma.socialPublishTarget.findMany({
+      where: { socialContentId: contentId, targetType: "GROUP" },
+      orderBy: { scheduledAt: "asc" },
+      include: { socialGroup: { select: { id: true, name: true, groupUrl: true, mode: true } } },
+    }),
+  ]);
+  return { contentStatus: content.status, groups, targets };
+}
+
+/**
+ * Everything the social analytics page reports on, for the last `days` days.
+ *
+ * Only Page posts carry insight metrics, so engagement is measured on those;
+ * group targets are reported separately as distribution outcomes.
+ */
+/** Cap on rows pulled into one report. Exceeding it is surfaced, never silent. */
+const REPORT_SAMPLE_LIMIT = 1000;
+
+export async function getSocialAnalytics(days = 30) {
+  const user = await requireAuth();
+  const tenantWhere = accessibleTenantWhere(user.id, user.role);
+  const since = new Date(Date.now() - days * 24 * 60 * 60_000);
+
+  const publishedPageWhere = {
+    targetType: "PAGE" as const,
+    status: "PUBLISHED" as const,
+    publishedAt: { gte: since },
+    socialPage: { workspace: { tenant: tenantWhere } },
+  };
+
+  const [pageTargets, publishedCount, groupTargets, commentRows, pendingComments] = await Promise.all([
+    prisma.socialPublishTarget.findMany({
+      where: publishedPageWhere,
+      orderBy: { publishedAt: "desc" },
+      take: REPORT_SAMPLE_LIMIT,
+      include: {
+        insight: { select: { engagements: true, reach: true, comments: true } },
+        content: { select: { title: true, topic: true, pillar: true, format: true } },
+        socialPage: { select: { id: true, name: true, workspace: { select: { id: true, name: true, timezone: true } } } },
+      },
+    }),
+    // Counted separately so a report that had to be capped can say so, rather
+    // than presenting a partial period as if it were the whole one.
+    prisma.socialPublishTarget.count({ where: publishedPageWhere }),
+    prisma.socialPublishTarget.findMany({
+      where: {
+        targetType: "GROUP",
+        createdAt: { gte: since },
+        socialPage: { workspace: { tenant: tenantWhere } },
+      },
+      select: { status: true, socialGroup: { select: { name: true } } },
+      take: REPORT_SAMPLE_LIMIT,
+    }),
+    prisma.socialComment.groupBy({
+      by: ["publishTargetId"],
+      where: {
+        isFromPage: false,
+        postedAt: { gte: since },
+        publishTarget: { socialPage: { workspace: { tenant: tenantWhere } } },
+      },
+      _count: { _all: true },
+    }),
+    prisma.socialComment.findMany({
+      where: {
+        isFromPage: false,
+        postedAt: { gte: since },
+        socialPage: { workspace: { tenant: tenantWhere } },
+      },
+      orderBy: { postedAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        message: true,
+        authorName: true,
+        postedAt: true,
+        socialPage: { select: { name: true } },
+        publishTarget: { select: { externalPostUrl: true, content: { select: { id: true, title: true, topic: true } } } },
+      },
+    }),
+  ]);
+
+  const commentsByTarget = new Map(commentRows.flatMap((row) => (row.publishTargetId ? [[row.publishTargetId, row._count._all] as const] : [])));
+
+  const samples = pageTargets.flatMap((target) => (target.publishedAt ? [{
+    targetId: target.id,
+    contentTitle: target.content.title || target.content.topic,
+    pillar: target.content.pillar,
+    format: target.content.format,
+    publishedAt: target.publishedAt,
+    engagements: target.insight?.engagements ?? 0,
+    reach: target.insight?.reach ?? 0,
+    comments: commentsByTarget.get(target.id) ?? 0,
+    pageName: target.socialPage.name,
+    postUrl: target.externalPostUrl,
+  }] : []));
+
+  return {
+    days,
+    samples,
+    /** Total published Page posts in the window, before the sample cap. */
+    publishedCount,
+    truncated: publishedCount > samples.length,
+    sampleLimit: REPORT_SAMPLE_LIMIT,
+    timezone: pageTargets[0]?.socialPage.workspace.timezone ?? "Asia/Bangkok",
+    groupTargets: groupTargets.map((target) => ({ groupName: target.socialGroup?.name ?? "Group đã xoá", status: target.status })),
+    recentComments: pendingComments,
+  };
 }

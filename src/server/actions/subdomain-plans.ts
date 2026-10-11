@@ -11,7 +11,7 @@ import { createTenant } from "@/server/queries/tenants";
 import { generateSubdomainSuggestions, normalizeRootDomain } from "@/lib/subdomain-factory";
 
 export type ActionResult = { ok: boolean; error?: string };
-const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "30nice.vn").toLowerCase();
+const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "gfvgo.com").toLowerCase();
 
 function ensureAdmin(role: Role) {
   return can(role, "AGENCY_ADMIN");

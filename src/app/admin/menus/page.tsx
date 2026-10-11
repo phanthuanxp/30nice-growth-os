@@ -24,7 +24,7 @@ const DEMO_MENUS = [
   {
     id: "footer",
     name: "Footer Links",
-    tenantName: "30Nice CMS Network",
+    tenantName: "GFVGO CMS Network",
     location: "footer",
     items: [
       { label: "Về chúng tôi", href: "/about" },

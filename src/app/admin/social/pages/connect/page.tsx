@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Facebook } from "lucide-react";
 import { z } from "zod";
 import { PageHeader } from "@/components/admin/page-header";
@@ -7,7 +7,7 @@ import { MetaPageSelector } from "@/components/admin/meta-page-selector";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/server/db";
 import { requireAuth } from "@/server/auth/session";
-import { requireTenantAccess } from "@/server/permissions/guard";
+import { checkTenantAccess } from "@/server/permissions/guard";
 
 export const metadata: Metadata = { title: "Chọn Facebook Page" };
 const pagesSchema = z.array(z.object({ id: z.string(), name: z.string(), category: z.string().optional(), tasks: z.array(z.string()).optional() }));
@@ -17,11 +17,14 @@ export default async function MetaPageConnectPage({ searchParams }: { searchPara
   const user = await requireAuth();
   if (!sessionId) notFound();
   const oauthSession = await prisma.metaOAuthSession.findFirst({
-    where: { id: sessionId, userId: user.id, consumedAt: null, expiresAt: { gt: new Date() } },
+    where: { id: sessionId, userId: user.id },
     include: { socialPage: { include: { workspace: { select: { tenantId: true } } } } },
   });
   if (!oauthSession) notFound();
-  await requireTenantAccess(oauthSession.socialPage.workspace.tenantId, "TENANT_ADMIN");
+  const hasAccess = await checkTenantAccess(oauthSession.socialPage.workspace.tenantId, "TENANT_ADMIN");
+  if (!hasAccess) redirect("/admin/social/pages?metaError=unauthorized");
+  if (oauthSession.consumedAt) redirect("/admin/social/pages?metaConnected=1");
+  if (oauthSession.expiresAt <= new Date()) redirect("/admin/social/pages?metaError=session_expired");
   const parsed = pagesSchema.safeParse(oauthSession.availablePages);
   if (!parsed.success) notFound();
   return (

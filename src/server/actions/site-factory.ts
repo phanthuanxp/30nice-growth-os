@@ -7,7 +7,7 @@ import { can } from "@/server/permissions";
 import { writeAuditLog } from "@/server/audit/log";
 import { createTenant } from "@/server/queries/tenants";
 
-const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "30nice.vn").toLowerCase();
+const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "gfvgo.com").toLowerCase();
 
 export type FactoryResult = { ok: boolean; tenantId?: string; error?: string };
 

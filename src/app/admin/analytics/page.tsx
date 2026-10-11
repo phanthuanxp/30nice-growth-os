@@ -60,7 +60,7 @@ export default async function AnalyticsPage() {
     ];
     stats = { publishedPages: 2, publishedPosts: 1, totalLeads: 2, leadsByStatus: { NEW: 1, QUALIFIED: 1 } };
     tenantComparison = [
-      { id: "cms", name: "30Nice CMS", slug: "cms-30nice", pages: 18, posts: 126, leads: 42, newLeads: 12, wonLeads: 8 },
+      { id: "cms", name: "GFVGO CMS", slug: "cms-gfvgo", pages: 18, posts: 126, leads: 42, newLeads: 12, wonLeads: 8 },
       { id: "taxi", name: "Taxi Bắc Ninh", slug: "taxibacninh", pages: 36, posts: 248, leads: 384, newLeads: 64, wonLeads: 52 },
     ];
   }
@@ -167,6 +167,7 @@ export default async function AnalyticsPage() {
             data={pageviewsByDay.map((d) => ({ label: shortDate(d.date), value: d.count }))}
             color="#06b6d4"
             height={110}
+            valueSuffix="lượt"
           />
         </CardContent>
       </Card>

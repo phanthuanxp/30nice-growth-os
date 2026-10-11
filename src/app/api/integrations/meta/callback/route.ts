@@ -10,9 +10,15 @@ import { adminPublicUrl } from "@/server/http/public-url";
 
 export const dynamic = "force-dynamic";
 
+function clearMetaOauthCookie(response: NextResponse) {
+  response.cookies.delete("30nice_meta_oauth");
+  response.cookies.set("30nice_meta_oauth", "", { path: "/api", maxAge: 0 });
+  response.cookies.set("30nice_meta_oauth", "", { path: "/api/integrations/meta", maxAge: 0 });
+}
+
 function errorRedirect(request: NextRequest, message: string) {
   const response = NextResponse.redirect(adminPublicUrl(`/admin/social/pages?metaError=${encodeURIComponent(message.slice(0, 300))}`));
-  response.cookies.delete("30nice_meta_oauth");
+  clearMetaOauthCookie(response);
   return response;
 }
 
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
     await prisma.metaOAuthSession.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     const response = NextResponse.redirect(adminPublicUrl(`/admin/social/pages/connect?sessionId=${oauthSession.id}`));
-    response.cookies.delete("30nice_meta_oauth");
+    clearMetaOauthCookie(response);
     return response;
   } catch (error) {
     return errorRedirect(request, error instanceof Error ? error.message : "Không thể hoàn tất Meta OAuth");

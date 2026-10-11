@@ -78,6 +78,7 @@ const NAV: NavGroup[] = [
       { label: "Lịch Social", href: "/admin/social/calendar", icon: Calendar },
       { label: "Publisher", href: "/admin/social/publishing", icon: UploadCloud },
       { label: "Group Library", href: "/admin/social/groups", icon: UsersRound },
+      { label: "Báo cáo Social", href: "/admin/social/analytics", icon: BarChart2 },
     ],
   },
   {

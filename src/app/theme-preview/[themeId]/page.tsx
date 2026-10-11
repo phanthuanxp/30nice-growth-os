@@ -58,7 +58,7 @@ export default async function ThemePreviewPage({ params }: Props) {
         </div>
       </div>
       <TravelNewsPage
-        siteName="30Nice Travel Demo"
+        siteName="GFVGO Travel Demo"
         email="lienhe@demo.vn"
         address="123 Đường Trung Tâm, Hà Nội"
         themeConfig={null}

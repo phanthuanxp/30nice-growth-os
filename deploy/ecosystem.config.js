@@ -1,10 +1,10 @@
 module.exports = {
   apps: [
     {
-      name: "30nice-growth-os",
+      name: "gfvgo",
       script: "node_modules/.bin/next",
       args: "start",
-      cwd: "/var/www/30nice-growth-os",
+      cwd: "/var/www/gfvgo",
       instances: 1,
       autorestart: true,
       watch: false,
@@ -13,8 +13,8 @@ module.exports = {
         NODE_ENV: "production",
         PORT: 3001,
       },
-      error_file: "/var/log/pm2/30nice-growth-os-error.log",
-      out_file: "/var/log/pm2/30nice-growth-os-out.log",
+      error_file: "/var/log/pm2/gfvgo-error.log",
+      out_file: "/var/log/pm2/gfvgo-out.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
   ],

@@ -12,7 +12,7 @@ interface Props {
   color?: string;
   height?: number;
   fillOpacity?: number;
-  formatValue?: (v: number) => string;
+  valueSuffix?: string;
 }
 
 function buildPath(points: { x: number; y: number }[], smooth = true): string {
@@ -30,7 +30,7 @@ function buildPath(points: { x: number; y: number }[], smooth = true): string {
   return d;
 }
 
-export function LineChart({ data, color = "#4f46e5", height = 80, fillOpacity = 0.15, formatValue }: Props) {
+export function LineChart({ data, color = "#4f46e5", height = 80, fillOpacity = 0.15, valueSuffix }: Props) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; point: DataPoint } | null>(null);
 
   if (!data || data.length === 0) {
@@ -89,7 +89,7 @@ export function LineChart({ data, color = "#4f46e5", height = 80, fillOpacity = 
           style={{ left: tooltip.x, top: Math.max(0, tooltip.y - 40) }}
         >
           <p className="font-semibold">{tooltip.point.label}</p>
-          <p className="text-slate-300">{formatValue ? formatValue(tooltip.point.value) : tooltip.point.value.toLocaleString()}</p>
+          <p className="text-slate-300">{`${tooltip.point.value.toLocaleString()}${valueSuffix ? ` ${valueSuffix}` : ""}`}</p>
         </div>
       )}
     </div>

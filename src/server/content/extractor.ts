@@ -76,7 +76,7 @@ function absolutize(maybeUrl: string | undefined, base: string) {
 }
 
 export async function extractArticleFromUrl(url: string): Promise<ExtractedArticle> {
-  const response = await fetch(url, { headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" }, signal: AbortSignal.timeout(20000) });
+  const response = await fetch(url, { headers: { "user-agent": "GFVGO/1.0 (+gfvgo.com)" }, signal: AbortSignal.timeout(20000) });
   if (!response.ok) throw new Error(`Fetch failed ${response.status}`);
   const rawHtml = await response.text();
   const mainHtml = pickMainHtml(rawHtml);

@@ -118,7 +118,7 @@ export function SiteFactoryCluster({ cluster }: { cluster: ClusterInfo }) {
               <input
                 name="domain"
                 defaultValue={cluster.suggestedDomain ?? ""}
-                placeholder="slug.30nice.vn (auto)"
+                placeholder="slug.gfvgo.com (auto)"
                 className="h-8 w-full rounded border border-slate-300 px-2 text-sm font-mono"
               />
             </div>
