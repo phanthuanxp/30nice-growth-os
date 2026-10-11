@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { BarChart2, TrendingUp, Users, Globe } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
-import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -31,40 +30,18 @@ export default async function AnalyticsPage() {
   let devices = { mobile: 0, desktop: 0 };
   let referrers: { referrer: string; views: number }[] = [];
   let traffic = { pageviews: 0, leads: 0, conversionRate: 0 };
-  let isDemo = false;
 
-  try {
-    [leadsByDay, sourceBreakdown, stats, tenantComparison, pageviewsByDay, topPages, devices, referrers, traffic] = await Promise.all([
-      getLeadsByDay(30),
-      getLeadSourceBreakdown(),
-      getContentStats(),
-      getTenantComparison(),
-      getPageviewsByDay(30),
-      getTopPages(30),
-      getDeviceBreakdown(30),
-      getTopReferrers(30),
-      getTrafficSummary(30),
-    ]);
-  } catch {
-    isDemo = true;
-    // Generate demo chart data
-    leadsByDay = Array.from({ length: 30 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (29 - i));
-      return { date: d.toISOString().split("T")[0], count: (i * 3 + 5) % 8 };
-    });
-    sourceBreakdown = [
-      { source: "/taxi-bac-ninh", total: 42, won: 8, rate: 19 },
-      { source: "/lien-he", total: 28, won: 6, rate: 21 },
-      { source: "(direct)", total: 18, won: 3, rate: 17 },
-      { source: "/dich-vu", total: 12, won: 2, rate: 17 },
-    ];
-    stats = { publishedPages: 2, publishedPosts: 1, totalLeads: 2, leadsByStatus: { NEW: 1, QUALIFIED: 1 } };
-    tenantComparison = [
-      { id: "cms", name: "GFVGO CMS", slug: "cms-gfvgo", pages: 18, posts: 126, leads: 42, newLeads: 12, wonLeads: 8 },
-      { id: "taxi", name: "Taxi Bắc Ninh", slug: "taxibacninh", pages: 36, posts: 248, leads: 384, newLeads: 64, wonLeads: 52 },
-    ];
-  }
+  [leadsByDay, sourceBreakdown, stats, tenantComparison, pageviewsByDay, topPages, devices, referrers, traffic] = await Promise.all([
+    getLeadsByDay(30),
+    getLeadSourceBreakdown(),
+    getContentStats(),
+    getTenantComparison(),
+    getPageviewsByDay(30),
+    getTopPages(30),
+    getDeviceBreakdown(30),
+    getTopReferrers(30),
+    getTrafficSummary(30),
+  ]);
 
   const totalToday = leadsByDay[leadsByDay.length - 1]?.count ?? 0;
   const totalWeek = leadsByDay.slice(-7).reduce((s, d) => s + d.count, 0);
@@ -78,8 +55,6 @@ export default async function AnalyticsPage() {
         title="Phân tích"
         description="Phân tích traffic, leads và hiệu suất nội dung."
       />
-
-      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Toàn bộ chỉ số bên dưới là dữ liệu mẫu." />}
 
       {/* KPI summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Search, AlertCircle, AlertTriangle, Info, CheckCircle2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
-import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +51,6 @@ export default async function SeoAiPage({ searchParams }: Props) {
 
   let audit: SeoAuditResult | null = null;
   let tenants: { id: string; name: string; slug: string }[] = [];
-  let isDemo = false;
 
   // Detect which AI providers are configured
   const configuredProviders: AiProvider[] = [];
@@ -61,28 +59,12 @@ export default async function SeoAiPage({ searchParams }: Props) {
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "YOUR_GEMINI_KEY") configuredProviders.push("gemini");
   if (process.env.NINER_ROUTER_API_KEY && process.env.NINER_ROUTER_API_KEY !== "YOUR_9ROUTER_KEY") configuredProviders.push("niner_router");
 
-  try {
-    const [auditResult, tenantList] = await Promise.all([
-      runSeoAudit(tenantId),
-      getTenants(),
-    ]);
-    audit = auditResult;
-    tenants = tenantList.map((t) => ({ id: t.id, name: t.name, slug: t.slug }));
-  } catch {
-    isDemo = true;
-    audit = {
-      score: 62,
-      issues: [
-        { type: "Thiếu SEO Title", resource: "page", id: "1", title: "Trang chủ", severity: "error" },
-        { type: "Thiếu Meta Description", resource: "post", id: "2", title: "Checklist SEO local", severity: "error" },
-        { type: "Thiếu Excerpt", resource: "post", id: "3", title: "AI Content Hub", severity: "warning" },
-      ],
-      pageCount: 2,
-      postCount: 2,
-      publishedPageCount: 1,
-      publishedPostCount: 1,
-    };
-  }
+  const [auditResult, tenantList] = await Promise.all([
+    runSeoAudit(tenantId),
+    getTenants(),
+  ]);
+  audit = auditResult;
+  tenants = tenantList.map((t) => ({ id: t.id, name: t.name, slug: t.slug }));
 
   const errors = audit.issues.filter((i) => i.severity === "error");
   const warnings = audit.issues.filter((i) => i.severity === "warning");
@@ -112,8 +94,6 @@ export default async function SeoAiPage({ searchParams }: Props) {
           </form>
         }
       />
-
-      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Không thể phân tích SEO thật cho tới khi database hoạt động." />}
 
       {/* Score + Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -187,11 +167,9 @@ export default async function SeoAiPage({ searchParams }: Props) {
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">{issue.title}{issue.detail ? ` · ${issue.detail}` : ""}</p>
                     </div>
-                    {!isDemo && (
-                      <Link href={editHref}>
-                        <Button variant="outline" size="sm">Sửa</Button>
-                      </Link>
-                    )}
+                    <Link href={editHref}>
+                      <Button variant="outline" size="sm">Sửa</Button>
+                    </Link>
                   </div>
                 );
               })}

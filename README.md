@@ -59,6 +59,4 @@ PM2 app `gfvgo` on port 3001 behind nginx (`deploy/nginx-gfvgo.com.conf`), DB
 
 ## Known gaps
 
-- Some admin pages and `resolveTenant()` fall back to in-memory demo data when the DB
-  is unavailable or a host is unknown (`src/server/queries/demo-data.ts`). To be removed.
 - Repository is still named `30nice-growth-os`.

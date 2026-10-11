@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDays, KanbanSquare, Newspaper, Clock } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
-import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/server/db";
@@ -49,44 +48,39 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
   let items: BoardItem[] = [];
   let scheduledArticles: { id: string; title: string | null; scheduledPublishAt: Date | null; draftPostId: string | null; tenant: { name: string } | null }[] = [];
   let tenants: { id: string; name: string }[] = [];
-  let isDemo = false;
 
-  try {
-    const [planItems, articles, tenantRows] = await Promise.all([
-      prisma.contentPlanItem.findMany({
-        where: { status: statusFilter ? statusFilter as never : { in: ["PLANNED", "DRAFT", "SCHEDULED", "PUBLISHED"] }, contentPlan: tenantFilter ? { tenantId: tenantFilter } : undefined },
-        orderBy: [{ status: "asc" }, { priority: "desc" }, { scheduledAt: "asc" }],
-        take: 200,
-        include: { contentPlan: { include: { tenant: { select: { name: true } } } } },
-      }),
-      prisma.sourceArticle.findMany({
-        where: { status: { in: ["SCHEDULED", "DRAFT_CREATED", "PUBLISHED"] }, tenantId: tenantFilter || undefined },
-        orderBy: [{ scheduledPublishAt: "asc" }, { updatedAt: "desc" }],
-        take: 100,
-        include: { tenant: { select: { name: true } } },
-      }),
-      prisma.tenant.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    ]);
-    tenants = tenantRows;
-    const postIds = planItems.map((item) => item.postId).filter(Boolean) as string[];
-    const qualityPosts = postIds.length ? await prisma.post.findMany({ where: { id: { in: postIds } }, select: { id: true, qualityScore: true, seoScore: true } }) : [];
-    const qualityMap = new Map(qualityPosts.map((post) => [post.id, post]));
-    items = planItems.map((item) => ({
-      id: item.id,
-      title: item.title,
-      keyword: item.keyword,
-      status: item.status,
-      priority: item.priority,
-      scheduledAt: item.scheduledAt,
-      postId: item.postId,
-      postQuality: item.postId ? qualityMap.get(item.postId) ?? null : null,
-      planTitle: item.contentPlan.title,
-      siteName: item.contentPlan.tenant?.name ?? null,
-    }));
-    scheduledArticles = articles;
-  } catch {
-    isDemo = true;
-  }
+  const [planItems, articles, tenantRows] = await Promise.all([
+    prisma.contentPlanItem.findMany({
+      where: { status: statusFilter ? statusFilter as never : { in: ["PLANNED", "DRAFT", "SCHEDULED", "PUBLISHED"] }, contentPlan: tenantFilter ? { tenantId: tenantFilter } : undefined },
+      orderBy: [{ status: "asc" }, { priority: "desc" }, { scheduledAt: "asc" }],
+      take: 200,
+      include: { contentPlan: { include: { tenant: { select: { name: true } } } } },
+    }),
+    prisma.sourceArticle.findMany({
+      where: { status: { in: ["SCHEDULED", "DRAFT_CREATED", "PUBLISHED"] }, tenantId: tenantFilter || undefined },
+      orderBy: [{ scheduledPublishAt: "asc" }, { updatedAt: "desc" }],
+      take: 100,
+      include: { tenant: { select: { name: true } } },
+    }),
+    prisma.tenant.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+  tenants = tenantRows;
+  const postIds = planItems.map((item) => item.postId).filter(Boolean) as string[];
+  const qualityPosts = postIds.length ? await prisma.post.findMany({ where: { id: { in: postIds } }, select: { id: true, qualityScore: true, seoScore: true } }) : [];
+  const qualityMap = new Map(qualityPosts.map((post) => [post.id, post]));
+  items = planItems.map((item) => ({
+    id: item.id,
+    title: item.title,
+    keyword: item.keyword,
+    status: item.status,
+    priority: item.priority,
+    scheduledAt: item.scheduledAt,
+    postId: item.postId,
+    postQuality: item.postId ? qualityMap.get(item.postId) ?? null : null,
+    planTitle: item.contentPlan.title,
+    siteName: item.contentPlan.tenant?.name ?? null,
+  }));
+  scheduledArticles = articles;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -111,8 +105,6 @@ export default async function PublishingPage({ searchParams }: { searchParams?: 
   return (
     <div className="space-y-6">
       <PageHeader title="Lịch xuất bản" description="Theo dõi content plan, draft, lịch đăng và trạng thái xuất bản cho mạng lưới site/subdomain." />
-
-      {isDemo && <DemoDataBanner title="Không kết nối được tới database." reason="Publishing calendar bên dưới đang trống, không phải dữ liệu mẫu. Cần database/migration để xem lịch thật." />}
 
       <div className="grid gap-4 md:grid-cols-4">
         {[

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Brain, Info } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
-import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AiProviderCard } from "@/components/admin/ai-provider-card";
 import { getAiProviderConfigs } from "@/server/queries/ai-providers";
@@ -22,13 +21,8 @@ function getEnvConfigured(): Record<string, boolean> {
 
 export default async function AiSettingsPage() {
   let configs: Awaited<ReturnType<typeof getAiProviderConfigs>> = [];
-  let isDemo = false;
 
-  try {
-    configs = await getAiProviderConfigs();
-  } catch {
-    isDemo = true;
-  }
+  configs = await getAiProviderConfigs();
 
   const envConfigured = getEnvConfigured();
   const configMap = Object.fromEntries(configs.map((c) => [c.provider, c]));
@@ -42,8 +36,6 @@ export default async function AiSettingsPage() {
         title="Cấu hình AI Providers"
         description="Quản lý API key, chọn provider mặc định và dự phòng cho toàn hệ thống."
       />
-
-      {isDemo && <DemoDataBanner title="Không kết nối được tới database." reason="Trạng thái biến môi trường bên dưới vẫn là thật, nhưng cấu hình đã lưu trong database chưa tải được và sẽ không lưu được cho tới khi database hoạt động." />}
 
       {/* Current default/fallback summary */}
       <Card>

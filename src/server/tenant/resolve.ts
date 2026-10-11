@@ -1,6 +1,6 @@
+import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { getTenantByDomain, getTenantBySubdomain } from "@/server/queries/tenants";
-import { tenants as demoTenants } from "@/server/queries/demo-data";
 
 export type ResolvedTenant = { id: string; name: string; slug: string; primaryDomain: string | null };
 
@@ -51,33 +51,38 @@ function parseSubdomain(host: string): string | null {
   return sub;
 }
 
-export async function resolveTenant(): Promise<ResolvedTenant> {
+/**
+ * Resolve the tenant for the current request host, or null when no tenant owns it.
+ * Database errors propagate on purpose: rendering another tenant's (or fake) data
+ * on a DB outage is worse than an error page.
+ */
+export async function resolveTenant(): Promise<ResolvedTenant | null> {
   const rawHost = (await headers()).get("host") ?? "";
   const host = normalizeHost(rawHost);
 
   const cached = getCached(host);
   if (cached) return cached;
 
-  try {
-    let tenant = await getTenantByDomain(host);
-    if (!tenant) {
-      const sub = parseSubdomain(host);
-      if (sub) tenant = await getTenantBySubdomain(sub);
-    }
-    if (tenant) {
-      const resolved: ResolvedTenant = {
-        id: tenant.id,
-        name: tenant.name,
-        slug: tenant.slug,
-        primaryDomain: tenant.primaryDomain,
-      };
-      setCached(host, resolved);
-      return resolved;
-    }
-  } catch {
-    // DB not available — fall through to demo
+  let tenant = await getTenantByDomain(host);
+  if (!tenant) {
+    const sub = parseSubdomain(host);
+    if (sub) tenant = await getTenantBySubdomain(sub);
   }
+  if (!tenant) return null;
 
-  const demo = demoTenants.find((t) => t.primaryDomain === host) ?? demoTenants[0];
-  return demo;
+  const resolved: ResolvedTenant = {
+    id: tenant.id,
+    name: tenant.name,
+    slug: tenant.slug,
+    primaryDomain: tenant.primaryDomain,
+  };
+  setCached(host, resolved);
+  return resolved;
+}
+
+/** Like resolveTenant(), but renders the 404 page when the host has no tenant. */
+export async function requireTenant(): Promise<ResolvedTenant> {
+  const tenant = await resolveTenant();
+  if (!tenant) notFound();
+  return tenant;
 }

@@ -1,9 +1,8 @@
 import { notFound, redirect, permanentRedirect } from "next/navigation";
 import { headers } from "next/headers";
-import { resolveTenant } from "@/server/tenant/resolve";
+import { requireTenant } from "@/server/tenant/resolve";
 import { getPageBySlug } from "@/server/queries/pages";
 import { getHeaderNavItems } from "@/server/queries/menus";
-import { pages as demoPages } from "@/server/queries/demo-data";
 import { PageRenderer } from "@/components/public/page-renderer";
 import { TravelNewsPage } from "@/components/themes/travel-news/travel-news-page";
 import { ThemeChrome } from "@/components/themes/theme-chrome";
@@ -43,7 +42,7 @@ async function findRedirect(tenantId: string, path: string): Promise<RedirectRul
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug: slugParts } = await params;
   const slug = (slugParts ?? []).join("/");
-  const tenant = await resolveTenant();
+  const tenant = await requireTenant();
   const host = (await headers()).get("host")?.replace(/^www\./, "") ?? "";
   const base = `https://${host}`;
 
@@ -67,12 +66,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  let page = null;
-  try {
-    page = await getPageBySlug(tenant.id, slug);
-  } catch {
-    page = demoPages.find((p) => p.tenantId === tenant.id && p.slug === slug) ?? null;
-  }
+  const page = await getPageBySlug(tenant.id, slug);
 
   if (!page) return {};
   const fullPage = page as typeof page & { seoTitle?: string | null; seoDescription?: string | null; ogImageUrl?: string | null };
@@ -111,7 +105,7 @@ export default async function PublicPage({ params }: Props) {
     notFound();
   }
 
-  const tenant = await resolveTenant();
+  const tenant = await requireTenant();
   const settings = await getSiteSettings(tenant.id);
   const headerNav = await getHeaderNavItems(tenant.id);
 
@@ -144,12 +138,7 @@ export default async function PublicPage({ params }: Props) {
   }
 
   // Inner page lookup
-  let page = null;
-  try {
-    page = await getPageBySlug(tenant.id, slug);
-  } catch {
-    page = demoPages.find((p) => p.tenantId === tenant.id && p.slug === slug) ?? null;
-  }
+  const page = await getPageBySlug(tenant.id, slug);
 
   if (!page || page.status !== "PUBLISHED") {
     const rule = await findRedirect(tenant.id, `/${slug}`);

@@ -20,12 +20,10 @@ import {
   UserCog,
 } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
-import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getTenantsWithCounts } from "@/server/queries/dashboard";
 import { getPageviewsByDay, getLeadsByDay } from "@/server/queries/analytics";
-import { tenants as demoTenants, pages as demoPages, posts as demoPosts } from "@/server/queries/demo-data";
 import { BarChart } from "@/components/admin/charts/bar-chart";
 import { LineChart } from "@/components/admin/charts/line-chart";
 import { SingleDonut } from "@/components/admin/charts/donut-chart";
@@ -44,58 +42,22 @@ function statusVariant(status: string) {
 }
 
 export default async function DashboardPage() {
-  let stats = {
-    totalSites: demoTenants.length,
-    publishedPages: demoPages.filter((p) => p.status === "PUBLISHED").length,
-    publishedPosts: demoPosts.filter((p) => p.status === "PUBLISHED").length,
-    newLeads: 0,
-  };
-  let tenantsData: Array<{
-    id: string;
-    name: string;
-    primaryDomain: string | null;
-    status: string;
-    _count: { pages: number; posts: number };
-  }> = [];
-  let pageviewsByDay: { date: string; count: number }[] = [];
-  let leadsByDay: { date: string; count: number }[] = [];
-  let avgQualityScore = 0;
-  let isDemo = true;
+  const [stats, tenantsData, pageviewsByDay, leadsByDay] = await Promise.all([
+    getDashboardStats(),
+    getTenantsWithCounts(),
+    getPageviewsByDay(30),
+    getLeadsByDay(14),
+  ]);
 
-  try {
-    const [dbStats, dbTenants, pv, ld] = await Promise.all([
-      getDashboardStats(),
-      getTenantsWithCounts(),
-      getPageviewsByDay(30),
-      getLeadsByDay(14),
-    ]);
-    stats = dbStats;
-    tenantsData = dbTenants;
-    pageviewsByDay = pv;
-    leadsByDay = ld;
-    isDemo = false;
-
-    // Quick avg quality score from DB
-    try {
-      const { prisma } = await import("@/server/db");
-      const r = await prisma.post.aggregate({ where: { status: "PUBLISHED", qualityScore: { not: null } }, _avg: { qualityScore: true } });
-      avgQualityScore = Math.round(r._avg.qualityScore ?? 0);
-    } catch { /* ignore */ }
-  } catch {
-    // DB not available — show demo stats with demo tenant rows
-    tenantsData = demoTenants.map((t) => ({
-      id: t.id,
-      name: t.name,
-      primaryDomain: t.primaryDomain,
-      status: t.status,
-      _count: { pages: t.pages, posts: t.posts },
-    }));
-  }
+  const { prisma } = await import("@/server/db");
+  const quality = await prisma.post.aggregate({
+    where: { status: "PUBLISHED", qualityScore: { not: null } },
+    _avg: { qualityScore: true },
+  });
+  const avgQualityScore = Math.round(quality._avg.qualityScore ?? 0);
 
   return (
     <div className="space-y-6">
-      {isDemo && <DemoDataBanner reason="Không kết nối được tới database. Mọi số liệu và site bên dưới là dữ liệu mẫu." />}
-
       <div
         className="rounded-2xl px-6 py-5 text-white"
         style={{ background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)" }}

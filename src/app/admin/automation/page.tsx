@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Zap, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
-import { DemoDataBanner } from "@/components/admin/demo-data-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,14 +33,9 @@ function statusBadge(status: string) {
 export default async function AutomationPage() {
   let jobs: Awaited<ReturnType<typeof getAutomationJobs>> = [];
   let tenants: { id: string; name: string }[] = [];
-  let isDemo = false;
 
-  try {
-    [jobs, tenants] = await Promise.all([getAutomationJobs(), getTenants()]);
-    tenants = tenants.map((t) => ({ id: t.id, name: t.name }));
-  } catch {
-    isDemo = true;
-  }
+  [jobs, tenants] = await Promise.all([getAutomationJobs(), getTenants()]);
+  tenants = tenants.map((t) => ({ id: t.id, name: t.name }));
 
   const done = jobs.filter((j) => j.status === "DONE").length;
   const failed = jobs.filter((j) => j.status === "FAILED").length;
@@ -53,8 +47,6 @@ export default async function AutomationPage() {
         description="Tự động hóa SEO check, đăng bài, thông báo lead và nhập dữ liệu."
       />
 
-      {isDemo && <DemoDataBanner title="Không kết nối được tới database." reason="Danh sách job bên dưới đang trống, không phải dữ liệu mẫu. Cần kết nối database để tạo và chạy automation jobs." />}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create form */}
         <Card>
@@ -65,7 +57,7 @@ export default async function AutomationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isDemo || tenants.length === 0 ? (
+            {tenants.length === 0 ? (
               <p className="text-sm text-slate-500">Cần kết nối database và có ít nhất một site.</p>
             ) : (
               <CreateJobForm tenants={tenants} />
