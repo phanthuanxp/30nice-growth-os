@@ -252,7 +252,7 @@ export async function createSubdomainPlansFromClustersAction(
   const project = await getKeywordProject(projectId, session.id);
   if (!project) return { ok: false, error: "Project không tồn tại" };
 
-  const rootDomain = normalizeRootDomain(form.get("rootDomain")?.toString() || "30nice.vn");
+  const rootDomain = normalizeRootDomain(form.get("rootDomain")?.toString() || "gfvgo.com");
   const clusters = await import("@/server/queries/keyword-clusters").then((m) => m.listClusters(projectId));
   if (clusters.length === 0) return { ok: false, error: "Chưa có cluster nào" };
 

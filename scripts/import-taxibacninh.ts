@@ -97,12 +97,12 @@ async function main() {
   console.log("🚀 Bắt đầu import Taxi Bắc Ninh...\n");
 
   // 1. Tạo Organization nếu chưa có
-  let org = await prisma.organization.findFirst({ where: { slug: "30nice-agency" } });
+  let org = await prisma.organization.findFirst({ where: { slug: "gfvgo-agency" } });
   if (!org) {
     org = await prisma.organization.create({
-      data: { name: "30Nice Agency", slug: "30nice-agency" },
+      data: { name: "GFVGO Agency", slug: "gfvgo-agency" },
     });
-    console.log("✅ Tạo Organization: 30Nice Agency");
+    console.log("✅ Tạo Organization: GFVGO Agency");
   } else {
     console.log("ℹ️  Organization đã tồn tại:", org.name);
   }

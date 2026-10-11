@@ -8,7 +8,7 @@ import { requireAuth } from "@/server/auth/session";
 import { requireTenantAccess } from "@/server/permissions/guard";
 import { writeAuditLog } from "@/server/audit/log";
 import { decryptToken } from "@/server/crypto/token-vault";
-import { debugMetaToken, getMetaConfig, getMetaPage, META_REQUIRED_SCOPES, subscribeMetaPageWebhooks } from "@/server/meta/client";
+import { debugMetaToken, getMetaConfig, getMetaPage, META_PUBLISH_SCOPES, META_READ_SCOPES, subscribeMetaPageWebhooks } from "@/server/meta/client";
 import { processSocialPublishQueue } from "@/server/social/publisher";
 
 export type MetaActionResult = { ok: boolean; error?: string };
@@ -25,6 +25,12 @@ function revalidateMeta() {
 function tokenExpiry(debug: { expires_at?: number; data_access_expires_at?: number }) {
   const candidates = [debug.expires_at, debug.data_access_expires_at].filter((value): value is number => Boolean(value && value > 0));
   return candidates.length ? new Date(Math.min(...candidates) * 1000) : null;
+}
+
+function mergeLaunchKitMeta(value: Prisma.JsonValue | null, meta: Record<string, Prisma.JsonValue>) {
+  const base = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Prisma.JsonValue> : {};
+  const currentMeta = base.meta && typeof base.meta === "object" && !Array.isArray(base.meta) ? base.meta as Record<string, Prisma.JsonValue> : {};
+  return { ...base, meta: { ...currentMeta, ...meta } } as Prisma.InputJsonValue;
 }
 
 export async function selectMetaPageAction(_previous: MetaActionResult, formData: FormData): Promise<MetaActionResult> {
@@ -44,7 +50,8 @@ export async function selectMetaPageAction(_previous: MetaActionResult, formData
   const page = pages.data.find((item) => item.id === parsed.data.externalPageId);
   const encryptedToken = tokenMap.data[parsed.data.externalPageId];
   if (!page || !encryptedToken) return { ok: false, error: "Facebook Page không thuộc phiên kết nối này" };
-  if (page.tasks && !page.tasks.includes("CREATE_CONTENT")) return { ok: false, error: "Tài khoản Meta chưa có tác vụ CREATE_CONTENT trên Page này" };
+  const hasReadTask = !page.tasks || page.tasks.some((task) => ["ANALYZE", "ADVERTISE", "MODERATE", "CREATE_CONTENT"].includes(task));
+  if (!hasReadTask) return { ok: false, error: "Tài khoản Meta chưa có quyền đọc/quản trị Page này" };
 
   try {
     const token = decryptToken(encryptedToken);
@@ -53,7 +60,8 @@ export async function selectMetaPageAction(_previous: MetaActionResult, formData
     if (!debug.is_valid || (debug.app_id && debug.app_id !== config.appId)) return { ok: false, error: "Page access token không hợp lệ cho Meta App này" };
     const grantedScopes = [...new Set([...(debug.scopes || []), ...(page.tasks || []).map((task) => `task:${task}`)])];
     const external = await getMetaPage(page.id, token);
-    await subscribeMetaPageWebhooks(page.id, token);
+    const canPublish = !page.tasks || page.tasks.includes("CREATE_CONTENT");
+    const webhookSubscribed = await subscribeMetaPageWebhooks(page.id, token).catch(() => false);
 
     await prisma.$transaction([
       prisma.socialConnection.upsert({
@@ -74,10 +82,10 @@ export async function selectMetaPageAction(_previous: MetaActionResult, formData
           lastValidatedAt: new Date(),
         },
       }),
-      prisma.socialPage.update({ where: { id: oauthSession.socialPageId }, data: { externalPageId: external.id, pageUrl: external.link || page.link || null, status: "CONNECTED" } }),
+      prisma.socialPage.update({ where: { id: oauthSession.socialPageId }, data: { name: external.name || page.name, category: external.category || page.category || null, externalPageId: external.id, pageUrl: external.link || page.link || null, status: "CONNECTED", launchKit: mergeLaunchKitMeta(oauthSession.socialPage.launchKit, { avatarUrl: external.picture?.data?.url || null, lastSyncedAt: new Date().toISOString(), webhookStatus: webhookSubscribed ? "ACTIVE" : "ERROR", tokenHealth: "HEALTHY" }) } }),
       prisma.metaOAuthSession.update({ where: { id: oauthSession.id }, data: { consumedAt: new Date(), encryptedPageTokens: Prisma.JsonNull } }),
     ]);
-    await writeAuditLog({ userId: user.id, tenantId: oauthSession.socialPage.workspace.tenantId, action: "social.meta.connect", resource: "SocialPage", resourceId: oauthSession.socialPageId, metadata: { externalPageId: external.id, grantedScopes } });
+    await writeAuditLog({ userId: user.id, tenantId: oauthSession.socialPage.workspace.tenantId, action: "social.meta.connect", resource: "SocialPage", resourceId: oauthSession.socialPageId, metadata: { externalPageId: external.id, grantedScopes, canPublish, webhookSubscribed } });
     revalidateMeta();
     return { ok: true };
   } catch (error) {
@@ -92,17 +100,18 @@ export async function validateMetaConnectionAction(socialPageId: string): Promis
   try {
     const token = decryptToken(page.connection.encryptedToken);
     const [debug, external] = await Promise.all([debugMetaToken(token), getMetaPage(page.externalPageId, token)]);
-    const missing = META_REQUIRED_SCOPES.filter((scope) => !(debug.scopes || []).includes(scope));
-    const valid = debug.is_valid && missing.length === 0;
+    const missingReadScopes = META_READ_SCOPES.filter((scope) => !(debug.scopes || []).includes(scope));
+    const missingPublishScopes = META_PUBLISH_SCOPES.filter((scope) => !(debug.scopes || []).includes(scope));
+    const valid = debug.is_valid && missingReadScopes.length === 0;
     if (valid) await subscribeMetaPageWebhooks(page.externalPageId, token);
     await prisma.$transaction([
       prisma.socialConnection.update({
         where: { id: page.connection.id },
-        data: { connectionStatus: valid ? "CONNECTED" : "INVALID", grantedScopes: debug.scopes || [], tokenExpiresAt: tokenExpiry(debug), lastValidatedAt: new Date() },
+        data: { connectionStatus: valid ? "CONNECTED" : "INVALID", grantedScopes: [...new Set([...(debug.scopes || []), ...((page as unknown as { tasks?: string[] }).tasks || []).map((task) => `task:${task}`)])], tokenExpiresAt: tokenExpiry(debug), lastValidatedAt: new Date() },
       }),
       prisma.socialPage.update({ where: { id: page.id }, data: { name: page.name, pageUrl: external.link || page.pageUrl, status: valid ? "CONNECTED" : "SETUP" } }),
     ]);
-    await writeAuditLog({ userId: user.id, tenantId: page.workspace.tenantId, action: "social.meta.validate", resource: "SocialPage", resourceId: page.id, metadata: { valid, missingScopes: missing } });
+    await writeAuditLog({ userId: user.id, tenantId: page.workspace.tenantId, action: "social.meta.validate", resource: "SocialPage", resourceId: page.id, metadata: { valid, missingReadScopes, missingPublishScopes } });
   } catch (error) {
     await prisma.$transaction([
       prisma.socialConnection.update({ where: { id: page.connection.id }, data: { connectionStatus: "INVALID", lastValidatedAt: new Date() } }),
@@ -111,6 +120,48 @@ export async function validateMetaConnectionAction(socialPageId: string): Promis
     throw error;
   } finally {
     revalidateMeta();
+  }
+}
+
+export async function syncMetaPageAction(socialPageId: string, _previous?: MetaActionResult): Promise<MetaActionResult> {
+  const page = await prisma.socialPage.findUnique({ where: { id: socialPageId }, include: { connection: true, workspace: { select: { tenantId: true } } } });
+  if (!page?.connection || !page.externalPageId) return { ok: false, error: "Page chưa được kết nối Meta" };
+  const user = await requireTenantAccess(page.workspace.tenantId, "TENANT_ADMIN");
+  try {
+    const token = decryptToken(page.connection.encryptedToken);
+    const [debug, external] = await Promise.all([debugMetaToken(token), getMetaPage(page.externalPageId, token)]);
+    const grantedScopes = [...new Set([...(debug.scopes || []), ...page.connection.grantedScopes.filter((scope) => scope.startsWith("task:"))])];
+    const missingReadScopes = META_READ_SCOPES.filter((scope) => !grantedScopes.includes(scope));
+    const valid = debug.is_valid && missingReadScopes.length === 0;
+    const webhookSubscribed = valid ? await subscribeMetaPageWebhooks(page.externalPageId, token).catch(() => false) : false;
+    await prisma.$transaction([
+      prisma.socialConnection.update({
+        where: { id: page.connection.id },
+        data: { connectionStatus: valid ? "CONNECTED" : "INVALID", grantedScopes, tokenExpiresAt: tokenExpiry(debug), lastValidatedAt: new Date() },
+      }),
+      prisma.socialPage.update({
+        where: { id: page.id },
+        data: {
+          name: external.name || page.name,
+          category: external.category || page.category,
+          pageUrl: external.link || page.pageUrl,
+          status: valid ? "CONNECTED" : "SETUP",
+          launchKit: mergeLaunchKitMeta(page.launchKit, {
+            avatarUrl: external.picture?.data?.url || null,
+            lastSyncedAt: new Date().toISOString(),
+            webhookStatus: webhookSubscribed ? "ACTIVE" : "ERROR",
+            tokenHealth: valid ? "HEALTHY" : "PERMISSION_MISSING",
+          }),
+        },
+      }),
+    ]);
+    await writeAuditLog({ userId: user.id, tenantId: page.workspace.tenantId, action: "social.meta.sync", resource: "SocialPage", resourceId: page.id, metadata: { valid, webhookSubscribed, missingReadScopes } });
+    revalidateMeta();
+    return { ok: true };
+  } catch (error) {
+    await prisma.socialConnection.update({ where: { id: page.connection.id }, data: { connectionStatus: "INVALID", lastValidatedAt: new Date() } }).catch(() => null);
+    revalidateMeta();
+    return { ok: false, error: error instanceof Error ? error.message : "Không thể sync Facebook Page" };
   }
 }
 

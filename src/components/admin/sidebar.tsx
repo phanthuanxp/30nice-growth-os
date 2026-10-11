@@ -113,7 +113,7 @@ export function Sidebar() {
             30
           </div>
           <div className="leading-tight">
-            <p className="text-xs font-bold text-white">30Nice</p>
+            <p className="text-xs font-bold text-white">GFVGO</p>
             <p className="text-[10px] text-slate-400">News CMS</p>
           </div>
         </Link>
@@ -166,7 +166,7 @@ export function Sidebar() {
         className="px-4 py-4 shrink-0"
         style={{ borderTop: "1px solid var(--sidebar-border)" }}
       >
-        <p className="text-[10px] text-slate-600 text-center">30Nice · News CMS v2</p>
+        <p className="text-[10px] text-slate-600 text-center">GFVGO · News CMS v2</p>
       </div>
     </aside>
   );

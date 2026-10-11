@@ -43,7 +43,7 @@ function stripHtml(html: string): string {
 }
 
 async function wpFetch<T>(url: string): Promise<T[]> {
-  const res = await safeFetch(url, { headers: { "User-Agent": "30Nice-Growth-OS/1.0" } });
+  const res = await safeFetch(url, { headers: { "User-Agent": "GFVGO-Growth-Platform/1.0" } });
   if (!res.ok) throw new Error(`WP API ${res.status}: ${url}`);
   return res.json() as Promise<T[]>;
 }

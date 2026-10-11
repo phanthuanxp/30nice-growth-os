@@ -68,7 +68,7 @@ export function CreateJobForm({ tenants }: { tenants: { id: string; name: string
         <Input
           label="WordPress URL"
           name="wpBaseUrl"
-          placeholder="https://cms.30nice.vn"
+          placeholder="https://cms.gfvgo.com"
           type="url"
         />
       )}

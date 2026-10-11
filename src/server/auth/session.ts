@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { SESSION_COOKIE } from "@/server/auth/cookie";
 import { createSessionToken, parseSessionToken, SESSION_MAX_AGE, type Role, type SessionUser } from "@/server/auth/token";
 
 export type { Role, SessionUser };
@@ -7,8 +8,8 @@ const RAW_SECRET = process.env.SESSION_SECRET;
 if (process.env.NODE_ENV === "production" && !RAW_SECRET) {
   throw new Error("SESSION_SECRET environment variable must be set in production");
 }
-const SECRET = RAW_SECRET ?? "30nice-dev-secret-key-min-32-chars!!";
-const COOKIE = "30nice_session";
+const SECRET = RAW_SECRET ?? "gfvgo-dev-secret-key-min-32-chars!!";
+const COOKIE = SESSION_COOKIE;
 
 export function signSession(user: SessionUser): string {
   return createSessionToken(user, SECRET);

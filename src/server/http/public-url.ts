@@ -1,4 +1,4 @@
-const DEFAULT_ADMIN_URL = "https://admin.30nice.vn";
+const DEFAULT_ADMIN_URL = "https://gfvgo.com";
 
 export function adminPublicUrl(path: string) {
   const configured = process.env.NEXTAUTH_URL || DEFAULT_ADMIN_URL;

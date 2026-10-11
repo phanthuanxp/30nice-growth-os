@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Media Library" };
 
 const DEMO_MEDIA = [
   { id: "1", filename: "hero-taxi-bacninh.jpg", mimeType: "image/jpeg", size: 284000, alt: "Xe taxi Bắc Ninh", url: "/demo/img1.jpg" },
-  { id: "2", filename: "logo-30nice.svg", mimeType: "image/svg+xml", size: 4200, alt: "30Nice logo", url: "/demo/logo.svg" },
+  { id: "2", filename: "logo-gfvgo.svg", mimeType: "image/svg+xml", size: 4200, alt: "GFVGO logo", url: "/demo/logo.svg" },
   { id: "3", filename: "seo-guide-2026.pdf", mimeType: "application/pdf", size: 1240000, alt: "", url: "/demo/seo.pdf" },
   { id: "4", filename: "banner-landing.jpg", mimeType: "image/jpeg", size: 432000, alt: "Banner landing", url: "/demo/banner.jpg" },
   { id: "5", filename: "intro-video.mp4", mimeType: "video/mp4", size: 8400000, alt: "", url: "/demo/video.mp4" },

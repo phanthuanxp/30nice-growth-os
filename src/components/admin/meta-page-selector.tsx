@@ -18,13 +18,14 @@ export function MetaPageSelector({ oauthSessionId, pages }: { oauthSessionId: st
   return (
     <div className="space-y-3">
       {pages.map((page) => {
+        const canConnect = !page.tasks || page.tasks.some((task) => ["ANALYZE", "ADVERTISE", "MODERATE", "CREATE_CONTENT"].includes(task));
         const canPublish = !page.tasks || page.tasks.includes("CREATE_CONTENT");
         return (
           <form key={page.id} action={action} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 md:flex-row md:items-center md:justify-between">
             <input type="hidden" name="oauthSessionId" value={oauthSessionId} />
             <input type="hidden" name="externalPageId" value={page.id} />
-            <div><p className="font-semibold text-slate-800">{page.name}</p><p className="text-xs text-slate-500">{page.category || "Facebook Page"} · ID {page.id}</p>{!canPublish && <p className="mt-1 text-xs font-medium text-red-600">Thiếu tác vụ CREATE_CONTENT</p>}</div>
-            <Button type="submit" loading={pending} disabled={!canPublish}><Facebook className="h-4 w-4" />Kết nối Page này</Button>
+            <div><p className="font-semibold text-slate-800">{page.name}</p><p className="text-xs text-slate-500">{page.category || "Facebook Page"} · ID {page.id}</p>{!canConnect && <p className="mt-1 text-xs font-medium text-red-600">Thiếu quyền đọc/quản trị Page này</p>}{canConnect && !canPublish && <p className="mt-1 text-xs font-medium text-amber-600">Có thể kết nối để đọc/đồng bộ; chưa đủ quyền CREATE_CONTENT để đăng tự động.</p>}</div>
+            <Button type="submit" loading={pending} disabled={!canConnect}><Facebook className="h-4 w-4" />Kết nối Page này</Button>
           </form>
         );
       })}

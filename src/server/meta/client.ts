@@ -1,7 +1,18 @@
 import { createHmac } from "node:crypto";
 import { z } from "zod";
+import { getMetaRuntimeSettings } from "@/server/meta/settings-store";
 
-export const META_REQUIRED_SCOPES = ["pages_show_list", "pages_manage_posts", "pages_read_engagement", "pages_manage_metadata"] as const;
+export const META_READ_SCOPES = ["pages_show_list", "pages_read_engagement", "pages_manage_metadata", "business_management"] as const;
+export const META_PUBLISH_SCOPES = ["pages_manage_posts"] as const;
+export const META_REQUIRED_SCOPES = META_READ_SCOPES;
+
+export function shouldRequestMetaPublishScope() {
+  return getMetaRuntimeSettings().requestPublishScope;
+}
+
+export function getMetaOAuthScopes() {
+  return shouldRequestMetaPublishScope() ? [...META_READ_SCOPES, ...META_PUBLISH_SCOPES] : [...META_READ_SCOPES];
+}
 
 const metaErrorSchema = z.object({
   error: z.object({
@@ -28,22 +39,21 @@ export class MetaApiError extends Error {
 }
 
 export function getMetaConfig() {
-  const appId = process.env.META_APP_ID;
-  const appSecret = process.env.META_APP_SECRET;
-  const redirectUri = process.env.META_REDIRECT_URI || "https://admin.30nice.vn/api/integrations/meta/callback";
-  const graphVersion = process.env.META_GRAPH_VERSION || "v25.0";
-  if (!appId || !appSecret) throw new Error("META_APP_ID và META_APP_SECRET chưa được cấu hình");
-  if (!/^v\d+\.\d+$/.test(graphVersion)) throw new Error("META_GRAPH_VERSION không hợp lệ");
-  return { appId, appSecret, redirectUri, graphVersion };
+  const config = getMetaRuntimeSettings();
+  if (!config.appId || !config.appSecret) throw new Error("Meta App ID và App Secret chưa được cấu hình");
+  if (!/^v\d+\.\d+$/.test(config.graphVersion)) throw new Error("Meta Graph API version không hợp lệ");
+  return { appId: config.appId, appSecret: config.appSecret, redirectUri: config.redirectUri, graphVersion: config.graphVersion };
 }
 
 export function getMetaConfigurationStatus() {
+  const config = getMetaRuntimeSettings();
   return {
-    appId: Boolean(process.env.META_APP_ID),
-    appSecret: Boolean(process.env.META_APP_SECRET),
-    redirectUri: process.env.META_REDIRECT_URI || "https://admin.30nice.vn/api/integrations/meta/callback",
-    graphVersion: process.env.META_GRAPH_VERSION || "v25.0",
-    webhookVerifyToken: Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN),
+    appId: Boolean(config.appId),
+    appSecret: Boolean(config.appSecret),
+    redirectUri: config.redirectUri,
+    graphVersion: config.graphVersion,
+    webhookVerifyToken: Boolean(config.webhookVerifyToken),
+    requestPublishScope: config.requestPublishScope,
   };
 }
 
@@ -124,6 +134,7 @@ const pageSchema = z.object({
   access_token: z.string().min(1),
   tasks: z.array(z.string()).optional(),
   link: z.string().optional(),
+  picture: z.object({ data: z.object({ url: z.string().optional() }).optional() }).optional(),
 });
 
 export type MetaManagedPage = Omit<z.infer<typeof pageSchema>, "access_token">;
@@ -135,7 +146,7 @@ export function buildMetaAuthorizeUrl(state: string) {
     redirect_uri: config.redirectUri,
     state,
     response_type: "code",
-    scope: META_REQUIRED_SCOPES.join(","),
+    scope: getMetaOAuthScopes().join(","),
   });
   return `https://www.facebook.com/${config.graphVersion}/dialog/oauth?${params}`;
 }
@@ -151,7 +162,7 @@ export async function exchangeMetaCode(code: string) {
 export async function listMetaManagedPages(userToken: string) {
   const payload = await graphRequest("me/accounts", {
     token: userToken,
-    params: { fields: "id,name,category,access_token,tasks,link", limit: "100" },
+    params: { fields: "id,name,category,access_token,tasks,link,picture", limit: "100" },
   });
   const parsed = z.object({ data: z.array(pageSchema) }).parse(payload);
   return parsed.data;
@@ -176,9 +187,27 @@ export async function debugMetaToken(token: string) {
   return debugSchema.parse(payload).data;
 }
 
+export async function getMetaMe(userToken: string) {
+  const payload = await graphRequest("me", { token: userToken, params: { fields: "id,name" } });
+  return z.object({ id: z.string(), name: z.string().optional() }).parse(payload);
+}
+
+export async function getMetaBusinesses(userToken: string) {
+  const payload = await graphRequest("me/businesses", { token: userToken, params: { fields: "id,name,verification_status", limit: "100" } });
+  return z.object({ data: z.array(z.object({ id: z.string(), name: z.string().optional(), verification_status: z.string().optional() })) }).parse(payload).data;
+}
+
 export async function getMetaPage(pageId: string, pageToken: string) {
-  const payload = await graphRequest(encodeURIComponent(pageId), { token: pageToken, params: { fields: "id,name,link" } });
-  return z.object({ id: z.string(), name: z.string(), link: z.string().optional() }).parse(payload);
+  const payload = await graphRequest(encodeURIComponent(pageId), { token: pageToken, params: { fields: "id,name,link,category,picture" } });
+  return z.object({ id: z.string(), name: z.string(), link: z.string().optional(), category: z.string().optional(), picture: z.object({ data: z.object({ url: z.string().optional() }).optional() }).optional() }).parse(payload);
+}
+
+export async function getMetaPagePosts(pageId: string, pageToken: string, limit = 10) {
+  const payload = await graphRequest(`${encodeURIComponent(pageId)}/posts`, {
+    token: pageToken,
+    params: { fields: "id,message,created_time,permalink_url,status_type", limit: String(Math.min(Math.max(limit, 1), 25)) },
+  });
+  return z.object({ data: z.array(z.object({ id: z.string(), message: z.string().optional(), created_time: z.string().optional(), permalink_url: z.string().optional(), status_type: z.string().optional() })) }).parse(payload).data;
 }
 
 export async function publishMetaPagePost(pageId: string, pageToken: string, message: string) {

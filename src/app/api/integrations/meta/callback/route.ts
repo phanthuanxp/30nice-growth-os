@@ -10,9 +10,15 @@ import { adminPublicUrl } from "@/server/http/public-url";
 
 export const dynamic = "force-dynamic";
 
+function clearMetaOauthCookie(response: NextResponse) {
+  response.cookies.delete("gfvgo_meta_oauth");
+  response.cookies.set("gfvgo_meta_oauth", "", { path: "/api", maxAge: 0 });
+  response.cookies.set("gfvgo_meta_oauth", "", { path: "/api/integrations/meta", maxAge: 0 });
+}
+
 function errorRedirect(request: NextRequest, message: string) {
   const response = NextResponse.redirect(adminPublicUrl(`/admin/social/pages?metaError=${encodeURIComponent(message.slice(0, 300))}`));
-  response.cookies.delete("30nice_meta_oauth");
+  clearMetaOauthCookie(response);
   return response;
 }
 
@@ -23,7 +29,7 @@ export async function GET(request: NextRequest) {
   if (errorDescription) return errorRedirect(request, errorDescription);
   const code = request.nextUrl.searchParams.get("code");
   const stateParam = request.nextUrl.searchParams.get("state");
-  const state = openMetaOauthState(request.cookies.get("30nice_meta_oauth")?.value);
+  const state = openMetaOauthState(request.cookies.get("gfvgo_meta_oauth")?.value);
   if (!code || !state || state.nonce !== stateParam || state.userId !== user.id) return errorRedirect(request, "OAuth state không hợp lệ hoặc đã hết hạn");
 
   const page = await prisma.socialPage.findUnique({ where: { id: state.socialPageId }, include: { workspace: { select: { tenantId: true } } } });
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
     await prisma.metaOAuthSession.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     const response = NextResponse.redirect(adminPublicUrl(`/admin/social/pages/connect?sessionId=${oauthSession.id}`));
-    response.cookies.delete("30nice_meta_oauth");
+    clearMetaOauthCookie(response);
     return response;
   } catch (error) {
     return errorRedirect(request, error instanceof Error ? error.message : "Không thể hoàn tất Meta OAuth");

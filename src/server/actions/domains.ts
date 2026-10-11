@@ -129,7 +129,7 @@ export async function provisionDomainAction(tenantId: string, domainId: string):
 }
 
 async function provisionNginxSsl(host: string): Promise<void> {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@30nice.vn";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@gfvgo.com";
   const script = `/usr/local/bin/provision-site-domain.sh`;
   const { stdout, stderr } = await execAsync(`bash ${script} "${host}" "${adminEmail}"`, {
     timeout: 120_000,

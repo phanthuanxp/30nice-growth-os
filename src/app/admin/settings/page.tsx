@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Settings, Key, Bell, Download, Terminal, Brain, ChevronRight } from "lucide-react";
+import { Settings, Key, Bell, Download, Terminal, Brain, ChevronRight, Facebook } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ export default function SettingsPage() {
   const hasOpenAi = !!process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.startsWith("sk-...");
   const hasGemini = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "YOUR_GEMINI_KEY";
   const hasNinerRouter = !!process.env.NINER_ROUTER_API_KEY && process.env.NINER_ROUTER_API_KEY !== "YOUR_9ROUTER_KEY";
-  const hasCron = !!process.env.CRON_SECRET && process.env.CRON_SECRET !== "30nice-cron-secret-change-me";
+  const hasCron = !!process.env.CRON_SECRET && process.env.CRON_SECRET !== "gfvgo-cron-secret-change-me";
 
   return (
     <div>
@@ -52,6 +52,22 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <p className="font-semibold text-slate-800">Quản lý AI Providers</p>
                 <p className="text-sm text-slate-500">Thêm API key, chọn provider mặc định và dự phòng qua giao diện web</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-slate-400" />
+            </CardContent>
+          </Card>
+        </Link>
+
+
+        <Link href="/admin/settings/meta">
+          <Card className="hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer">
+            <CardContent className="flex items-center gap-4 py-4">
+              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                <Facebook className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-800">Cấu hình Meta / Facebook</p>
+                <p className="text-sm text-slate-500">Nhập App ID, App Secret và token key để kết nối Facebook Page có sẵn</p>
               </div>
               <ChevronRight className="h-4 w-4 text-slate-400" />
             </CardContent>
@@ -251,7 +267,7 @@ export default function SettingsPage() {
             <div className="rounded-lg bg-slate-50 p-3">
               <Input
                 label="CRON_SECRET (hiện tại)"
-                defaultValue={hasCron ? "***" : "30nice-cron-secret-change-me"}
+                defaultValue={hasCron ? "***" : "gfvgo-cron-secret-change-me"}
                 disabled
               />
               <p className="text-xs text-slate-400 mt-1">Thay đổi trong file .env và khởi động lại server.</p>

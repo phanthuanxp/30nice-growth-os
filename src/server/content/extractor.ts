@@ -82,7 +82,7 @@ function absolutize(maybeUrl: string | undefined, base: string) {
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 
 export async function extractArticleFromUrl(url: string): Promise<ExtractedArticle> {
-  const response = await safeFetch(url, { headers: { "user-agent": "30NiceGrowthOS/1.0 (+admin.30nice.vn)" }, timeoutMs: 20000 });
+  const response = await safeFetch(url, { headers: { "user-agent": "GFVGO/1.0 (+gfvgo.com)" }, timeoutMs: 20000 });
   if (!response.ok) throw new Error(`Fetch failed ${response.status}`);
   const rawHtml = await readCappedText(response, MAX_RESPONSE_BYTES);
   const mainHtml = pickMainHtml(rawHtml);

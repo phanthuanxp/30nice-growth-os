@@ -34,7 +34,7 @@ export function invalidateTenantCache(host?: string) {
   else cache.clear();
 }
 
-const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "30nice.vn").toLowerCase();
+const PRIMARY_HOST = (process.env.PRIMARY_HOST ?? "gfvgo.com").toLowerCase();
 const ADMIN_HOST = (process.env.ADMIN_HOST ?? `admin.${PRIMARY_HOST}`).toLowerCase();
 
 function normalizeHost(raw: string): string {

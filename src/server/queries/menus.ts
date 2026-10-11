@@ -1,10 +1,5 @@
 import { prisma } from "@/server/db";
-
-export interface HeaderNavItem {
-  label: string;
-  href: string;
-  children?: { label: string; href: string }[];
-}
+export type HeaderNavItem = { label: string; href: string; children?: { label: string; href: string }[] };
 
 export async function getHeaderNavItems(tenantId: string): Promise<HeaderNavItem[] | null> {
   try {

@@ -27,7 +27,7 @@ export function SocialWorkspaceForm({ tenants }: { tenants: { id: string; name: 
   return (
     <form action={action} className="space-y-3">
       <Select name="tenantId" label="Doanh nghiệp / tenant" required options={tenants.map((tenant) => ({ value: tenant.id, label: tenant.name }))} />
-      <Input name="name" label="Tên Social Workspace" placeholder="VD: 30Nice Social Network" required />
+      <Input name="name" label="Tên Social Workspace" placeholder="VD: GFVGO Social Network" required />
       <Textarea name="objective" label="Mục tiêu tổng" placeholder="Quản lý các Page dịch vụ, xây thương hiệu và thu lead..." />
       <Button type="submit" loading={pending} className="w-full">
         <BriefcaseBusiness className="h-4 w-4" /> Tạo workspace
@@ -42,7 +42,7 @@ export function SocialPageForm({ workspaces }: { workspaces: { id: string; name:
   return (
     <form action={action} className="space-y-3">
       <Select name="workspaceId" label="Workspace" required options={workspaces.map((workspace) => ({ value: workspace.id, label: `${workspace.name} · ${workspace.tenantName}` }))} />
-      <Input name="name" label="Tên Page dự kiến" placeholder="VD: Đi Hà Giang Cùng 30Nice" required />
+      <Input name="name" label="Tên Page dự kiến" placeholder="VD: Đi Hà Giang Cùng GFVGO" required />
       <Input name="category" label="Chủ đề / ngành" placeholder="Du lịch Hà Giang, thuê xe, làm đẹp..." required />
       <Textarea name="objective" label="Mục tiêu Page" placeholder="Tăng người theo dõi, nhận khách inbox và xây thương hiệu..." required />
       <Textarea name="audience" label="Khách hàng mục tiêu" placeholder="Người 25–45 tuổi tại Hà Nội đang tìm lịch trình du lịch..." required />

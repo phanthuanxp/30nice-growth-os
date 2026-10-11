@@ -16,6 +16,6 @@ jobs:
             --write-out '%{http_code}' \
             --request POST \
             --header "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            https://admin.30nice.vn/api/cron/social-publish)"
+            https://gfvgo.com/api/cron/social-publish)"
           cat /tmp/social-publish.json
           test "$HTTP_STATUS" = "200"

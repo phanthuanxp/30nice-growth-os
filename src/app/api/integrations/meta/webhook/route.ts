@@ -4,11 +4,12 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { secretsMatch } from "@/server/http/cron-auth";
+import { getMetaRuntimeSettings } from "@/server/meta/settings-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN;
+  const verifyToken = getMetaRuntimeSettings().webhookVerifyToken;
   const mode = request.nextUrl.searchParams.get("hub.mode");
   const supplied = request.nextUrl.searchParams.get("hub.verify_token");
   const challenge = request.nextUrl.searchParams.get("hub.challenge");
@@ -22,7 +23,7 @@ const webhookSchema = z.object({
 });
 
 function validSignature(rawBody: string, supplied: string | null) {
-  const secret = process.env.META_APP_SECRET;
+  const secret = getMetaRuntimeSettings().appSecret;
   if (!secret || !supplied?.startsWith("sha256=")) return false;
   const actual = Buffer.from(supplied.slice(7), "hex");
   const expected = createHmac("sha256", secret).update(rawBody).digest();

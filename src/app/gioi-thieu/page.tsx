@@ -1,0 +1,6 @@
+import type { Metadata } from "next";
+import { PublicLayout, SectionHeader, FeatureCard } from "@/components/marketing/public-layout";
+import { COMPANY } from "@/components/marketing/site";
+import { publicMetadata } from "@/components/marketing/seo";
+export const metadata: Metadata = publicMetadata("/gioi-thieu", "Giới thiệu GFVGO Growth Platform", "Tìm hiểu về GFVGO Growth Platform, nền tảng quản lý CMS, SEO, nội dung và social cho doanh nghiệp.");
+export default function Page(){return <PublicLayout><section className="px-4 py-20 sm:px-6 lg:px-8"><SectionHeader eyebrow="About" title="Về GFVGO Growth Platform">GFVGO là sản phẩm phần mềm phục vụ vận hành nội dung, SEO và social growth cho {COMPANY.company} và khách hàng/doanh nghiệp có nhu cầu quản trị tăng trưởng số.</SectionHeader><div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-3"><FeatureCard title="Sứ mệnh">Giúp đội ngũ marketing vận hành nhiều website và kênh social hiệu quả hơn, có kiểm soát hơn.</FeatureCard><FeatureCard title="Định hướng">Xây dựng hệ thống CMS, AI content, SEO planning và social workflows phù hợp môi trường doanh nghiệp.</FeatureCard><FeatureCard title="Nguyên tắc">Không thay thế trách nhiệm biên tập của con người; AI là công cụ hỗ trợ, dữ liệu và quyền riêng tư phải được tôn trọng.</FeatureCard></div></section></PublicLayout>}

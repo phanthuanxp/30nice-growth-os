@@ -14,7 +14,7 @@ export default function NewSitePage() {
     <div>
       <PageHeader
         title="Thêm Site Mới"
-        description="Tạo tenant website mới trong hệ thống 30Nice."
+        description="Tạo tenant website mới trong hệ thống GFVGO."
         action={
           <Link href="/admin/sites">
             <Button variant="outline" size="sm">

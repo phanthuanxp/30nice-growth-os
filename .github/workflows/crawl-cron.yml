@@ -17,7 +17,7 @@ jobs:
           RESPONSE=$(curl -s -o /tmp/crawl_response.json -w "%{http_code}" \
             -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://admin.30nice.vn/api/cron/crawl")
+            "https://gfvgo.com/api/cron/crawl")
 
           echo "HTTP status: $RESPONSE"
           cat /tmp/crawl_response.json

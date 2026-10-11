@@ -172,7 +172,7 @@ export function ThemeClient({ siteId, currentTheme, phone: initPhone, zaloLink: 
               <Textarea value={footerAbout} onChange={setFooterAbout} rows={3} placeholder="Mô tả ngắn về site xuất hiện ở footer..." />
             </Field>
             <Field label="Tên bản quyền (©)">
-              <Input value={copyrightName} onChange={setCopyrightName} placeholder="30Nice Travel" />
+              <Input value={copyrightName} onChange={setCopyrightName} placeholder="GFVGO Travel" />
             </Field>
           </Section>
 

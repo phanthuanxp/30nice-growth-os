@@ -1,17 +1,19 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { getMetaRuntimeSettings } from "@/server/meta/settings-store";
 
 const PREFIX = "v1";
 
 function encryptionKey() {
-  const secret = process.env.TOKEN_ENCRYPTION_KEY;
+  const secret = getMetaRuntimeSettings().tokenEncryptionKey;
   if (!secret || secret.length < 32) {
-    throw new Error("TOKEN_ENCRYPTION_KEY chưa được cấu hình hoặc ngắn hơn 32 ký tự");
+    throw new Error("Token Encryption Key chưa được cấu hình hoặc ngắn hơn 32 ký tự");
   }
   return createHash("sha256").update(secret, "utf8").digest();
 }
 
 export function tokenVaultConfigured() {
-  return Boolean(process.env.TOKEN_ENCRYPTION_KEY && process.env.TOKEN_ENCRYPTION_KEY.length >= 32);
+  const secret = getMetaRuntimeSettings().tokenEncryptionKey;
+  return Boolean(secret && secret.length >= 32);
 }
 
 export function encryptToken(plainText: string) {

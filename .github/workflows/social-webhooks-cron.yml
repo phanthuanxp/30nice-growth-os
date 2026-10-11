@@ -18,6 +18,6 @@ jobs:
             --write-out '%{http_code}' \
             --request POST \
             --header "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            https://admin.30nice.vn/api/cron/social-webhooks)"
+            https://gfvgo.com/api/cron/social-webhooks)"
           cat /tmp/social-webhooks.json
           test "$HTTP_STATUS" = "200"
