@@ -1,11 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db";
+import { isLoopbackHost, normalizeHost } from "@/server/http/host-rules";
 
-// Internal-only endpoint — only callable from proxy (same process/host).
-// No auth header needed since it's behind the same origin.
+// Internal-only endpoint, called by the edge proxy over INTERNAL_BASE_URL.
+// The proxy 404s /api/internal on every public hostname; the loopback check
+// below is the second lock, so a misconfigured INTERNAL_BASE_URL or a proxy
+// bypass still cannot expose it.
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  if (!isLoopbackHost(normalizeHost(req.headers.get("host")))) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const host = req.nextUrl.searchParams.get("host");
   if (!host) return NextResponse.json([], { status: 200 });
 

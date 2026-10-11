@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/server/auth/cookie";
 
-const COOKIE = "30nice_session";
+const COOKIE = SESSION_COOKIE;
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
