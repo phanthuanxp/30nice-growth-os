@@ -70,6 +70,8 @@ rsync -a --delete \
   --exclude='.data/' \
   --exclude='.deploy-backups/' \
   --exclude='public/uploads/' \
+  --exclude='.openclaw/' \
+  --exclude='.claude/' \
   "${SRC_DIR}/" "${APP_DIR}/"
 echo "${REVISION}" > "${APP_DIR}/REVISION"
 

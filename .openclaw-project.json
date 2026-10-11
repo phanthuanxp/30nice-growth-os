@@ -17,12 +17,15 @@
     }
   ],
   "pre_work_checks": [
-    "Confirm the user explicitly means gfvgo, Growth OS, or the ClaudeCLI-built CMS.",
-    "Run git status from /root/.openclaw/workspace/projects/gfvgo before edits.",
+    "Read AGENTS.md in the repo root and follow its workflow.",
+    "Work on a branch in /root/.openclaw/workspace/projects/gfvgo; run git status first.",
+    "Never edit /var/www/gfvgo directly; deploy only via deploy/deploy.sh.",
     "Do not patch, deploy, or overwrite cms.gfvgo.com WordPress files from this repo."
   ],
   "created_at": "2026-06-17T06:26:00+02:00",
   "primary_domain": "https://gfvgo.com",
   "domain_calling_rule": "When sếp Thuần names gfvgo.com, treat it as project gfvgo.",
-  "updated_at": "2026-06-17T06:43:00+02:00"
+  "updated_at": "2026-10-11T12:00:00+02:00",
+  "repository": "https://github.com/phanthuanxp/30nice-growth-os",
+  "production_path": "/var/www/gfvgo"
 }

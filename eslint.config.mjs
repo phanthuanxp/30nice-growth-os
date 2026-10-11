@@ -22,6 +22,7 @@ const eslintConfig = defineConfig([
     ".upgrade-work/**",
     ".backup-v2/**",
     "backups/**",
+    ".openclaw-tmp/**",
   ]),
 ]);
 
