@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const nonce = randomBytes(24).toString("base64url");
     const state = { nonce, userId: user.id, socialPageId, expiresAt: Date.now() + 10 * 60_000 };
     const response = NextResponse.redirect(buildMetaAuthorizeUrl(nonce));
-    response.cookies.set("30nice_meta_oauth", sealMetaOauthState(state), {
+    response.cookies.set("gfvgo_meta_oauth", sealMetaOauthState(state), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

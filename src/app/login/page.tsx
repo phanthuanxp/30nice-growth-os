@@ -10,7 +10,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from") ?? "/admin/dashboard";
 
-  const [email, setEmail] = useState("admin@30nice.vn");
+  const [email, setEmail] = useState("admin@gfvgo.com");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ function LoginForm() {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="admin@30nice.vn"
+        placeholder="admin@gfvgo.com"
         required
         autoComplete="email"
         className="bg-white/10 border-white/20 text-white placeholder:text-slate-500 focus:ring-indigo-500"

@@ -31,7 +31,7 @@ export default function SettingsPage() {
   const hasOpenAi = !!process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.startsWith("sk-...");
   const hasGemini = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "YOUR_GEMINI_KEY";
   const hasNinerRouter = !!process.env.NINER_ROUTER_API_KEY && process.env.NINER_ROUTER_API_KEY !== "YOUR_9ROUTER_KEY";
-  const hasCron = !!process.env.CRON_SECRET && process.env.CRON_SECRET !== "30nice-cron-secret-change-me";
+  const hasCron = !!process.env.CRON_SECRET && process.env.CRON_SECRET !== "gfvgo-cron-secret-change-me";
 
   return (
     <div>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
             <div className="rounded-lg bg-slate-50 p-3">
               <Input
                 label="CRON_SECRET (hiện tại)"
-                defaultValue={hasCron ? "***" : "30nice-cron-secret-change-me"}
+                defaultValue={hasCron ? "***" : "gfvgo-cron-secret-change-me"}
                 disabled
               />
               <p className="text-xs text-slate-400 mt-1">Thay đổi trong file .env và khởi động lại server.</p>

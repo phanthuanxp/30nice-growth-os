@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s | GFVGO Growth Platform",
   },
   description:
-    "Multi-tenant CMS, SEO AI, Analytics, Ads, Leads, and Automation platform by 30Nice.",
+    "Multi-tenant CMS, SEO AI, Analytics, Ads, Leads, and Automation platform by GFVGO.",
 };
 
 export default function RootLayout({
