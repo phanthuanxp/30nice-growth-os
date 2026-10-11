@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { resolveTenant } from "@/server/tenant/resolve";
+import { requireTenant } from "@/server/tenant/resolve";
 import { getPostBySlug, getPublishedPostsByTenant } from "@/server/queries/posts";
 import { prisma } from "@/server/db";
 import { ThemeChrome } from "@/components/themes/theme-chrome";
@@ -13,7 +13,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const tenant = await resolveTenant();
+  const tenant = await requireTenant();
   const host = (await headers()).get("host")?.replace(/^www\./, "") ?? "";
 
   let post = null;
@@ -57,7 +57,7 @@ function formatDate(d: Date | null): string {
 
 export default async function BlogDetailPage({ params }: Props) {
   const { slug } = await params;
-  const tenant = await resolveTenant();
+  const tenant = await requireTenant();
   const host = (await headers()).get("host")?.replace(/^www\./, "") ?? "";
 
   let post = null;

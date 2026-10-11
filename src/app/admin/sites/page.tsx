@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenants } from "@/server/queries/tenants";
-import { tenants as demoTenants } from "@/server/queries/demo-data";
 
 export const metadata: Metadata = { title: "Sites" };
 
@@ -28,30 +27,15 @@ export default async function SitesPage() {
     _count: { pages: number; posts: number };
   };
 
-  let tenantList: TenantRow[] = [];
-  let isDemo = false;
-
-  try {
-    const rows = await getTenants();
-    tenantList = rows.map((t) => ({
-      id: t.id,
-      name: t.name,
-      slug: t.slug,
-      primaryDomain: t.primaryDomain,
-      status: t.status,
-      _count: { pages: t._count.pages, posts: t._count.posts },
-    }));
-  } catch {
-    isDemo = true;
-    tenantList = demoTenants.map((t) => ({
-      id: t.id,
-      name: t.name,
-      slug: t.slug,
-      primaryDomain: t.primaryDomain,
-      status: t.status,
-      _count: { pages: t.pages, posts: t.posts },
-    }));
-  }
+  const rows = await getTenants();
+  const tenantList: TenantRow[] = rows.map((t) => ({
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    primaryDomain: t.primaryDomain,
+    status: t.status,
+    _count: { pages: t._count.pages, posts: t._count.posts },
+  }));
 
   const active = tenantList.filter((t) => t.status === "ACTIVE").length;
   const totalPosts = tenantList.reduce((s, t) => s + t._count.posts, 0);
@@ -147,14 +131,12 @@ export default async function SitesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2 items-center">
-                      {!isDemo && (
-                        <Link href={`/admin/sites/${t.id}`}>
-                          <Button size="sm" className="gap-1.5">
-                            Quản lý
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </Button>
-                        </Link>
-                      )}
+                      <Link href={`/admin/sites/${t.id}`}>
+                        <Button size="sm" className="gap-1.5">
+                          Quản lý
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
                       {t.primaryDomain && (
                         <a href={`https://${t.primaryDomain}`} target="_blank" rel="noopener noreferrer">
                           <Button variant="ghost" size="icon" title="Xem live site">
@@ -171,11 +153,6 @@ export default async function SitesPage() {
         </Card>
       )}
 
-      {isDemo && (
-        <p className="mt-4 text-xs text-slate-400 text-center">
-          Dữ liệu demo · Kết nối database để hiển thị dữ liệu thật
-        </p>
-      )}
     </div>
   );
 }

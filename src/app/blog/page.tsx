@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { resolveTenant } from "@/server/tenant/resolve";
+import { requireTenant } from "@/server/tenant/resolve";
 import { getPublishedPostsByTenant } from "@/server/queries/posts";
 import { prisma } from "@/server/db";
 import { ThemeChrome } from "@/components/themes/theme-chrome";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await resolveTenant();
+  const tenant = await requireTenant();
   const host = (await headers()).get("host")?.replace(/^www\./, "") ?? "";
   const title = `Blog — ${tenant.name}`;
   return {
@@ -29,7 +29,7 @@ function formatDate(d: Date | null): string {
 }
 
 export default async function BlogListPage() {
-  const tenant = await resolveTenant();
+  const tenant = await requireTenant();
 
   let posts: Awaited<ReturnType<typeof getPublishedPostsByTenant>> = [];
   let settings = null;

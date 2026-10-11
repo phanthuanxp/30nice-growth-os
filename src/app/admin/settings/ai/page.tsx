@@ -21,13 +21,8 @@ function getEnvConfigured(): Record<string, boolean> {
 
 export default async function AiSettingsPage() {
   let configs: Awaited<ReturnType<typeof getAiProviderConfigs>> = [];
-  let isDemo = false;
 
-  try {
-    configs = await getAiProviderConfigs();
-  } catch {
-    isDemo = true;
-  }
+  configs = await getAiProviderConfigs();
 
   const envConfigured = getEnvConfigured();
   const configMap = Object.fromEntries(configs.map((c) => [c.provider, c]));
@@ -41,12 +36,6 @@ export default async function AiSettingsPage() {
         title="Cấu hình AI Providers"
         description="Quản lý API key, chọn provider mặc định và dự phòng cho toàn hệ thống."
       />
-
-      {isDemo && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          Chưa kết nối database — cấu hình sẽ được lưu khi database hoạt động.
-        </div>
-      )}
 
       {/* Current default/fallback summary */}
       <Card>

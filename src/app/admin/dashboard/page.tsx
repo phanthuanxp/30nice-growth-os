@@ -15,13 +15,15 @@ import {
   Workflow,
   UploadCloud,
   ArrowRight,
+  Share2,
+  Compass,
+  UserCog,
 } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, getTenantsWithCounts } from "@/server/queries/dashboard";
 import { getPageviewsByDay, getLeadsByDay } from "@/server/queries/analytics";
-import { tenants as demoTenants, pages as demoPages, posts as demoPosts } from "@/server/queries/demo-data";
 import { BarChart } from "@/components/admin/charts/bar-chart";
 import { LineChart } from "@/components/admin/charts/line-chart";
 import { SingleDonut } from "@/components/admin/charts/donut-chart";
@@ -40,53 +42,19 @@ function statusVariant(status: string) {
 }
 
 export default async function DashboardPage() {
-  let stats = {
-    totalSites: demoTenants.length,
-    publishedPages: demoPages.filter((p) => p.status === "PUBLISHED").length,
-    publishedPosts: demoPosts.filter((p) => p.status === "PUBLISHED").length,
-    newLeads: 0,
-  };
-  let tenantsData: Array<{
-    id: string;
-    name: string;
-    primaryDomain: string | null;
-    status: string;
-    _count: { pages: number; posts: number };
-  }> = [];
-  let pageviewsByDay: { date: string; count: number }[] = [];
-  let leadsByDay: { date: string; count: number }[] = [];
-  let avgQualityScore = 0;
-  let isDemo = true;
+  const [stats, tenantsData, pageviewsByDay, leadsByDay] = await Promise.all([
+    getDashboardStats(),
+    getTenantsWithCounts(),
+    getPageviewsByDay(30),
+    getLeadsByDay(14),
+  ]);
 
-  try {
-    const [dbStats, dbTenants, pv, ld] = await Promise.all([
-      getDashboardStats(),
-      getTenantsWithCounts(),
-      getPageviewsByDay(30),
-      getLeadsByDay(14),
-    ]);
-    stats = dbStats;
-    tenantsData = dbTenants;
-    pageviewsByDay = pv;
-    leadsByDay = ld;
-    isDemo = false;
-
-    // Quick avg quality score from DB
-    try {
-      const { prisma } = await import("@/server/db");
-      const r = await prisma.post.aggregate({ where: { status: "PUBLISHED", qualityScore: { not: null } }, _avg: { qualityScore: true } });
-      avgQualityScore = Math.round(r._avg.qualityScore ?? 0);
-    } catch { /* ignore */ }
-  } catch {
-    // DB not available — show demo stats with demo tenant rows
-    tenantsData = demoTenants.map((t) => ({
-      id: t.id,
-      name: t.name,
-      primaryDomain: t.primaryDomain,
-      status: t.status,
-      _count: { pages: t.pages, posts: t.posts },
-    }));
-  }
+  const { prisma } = await import("@/server/db");
+  const quality = await prisma.post.aggregate({
+    where: { status: "PUBLISHED", qualityScore: { not: null } },
+    _avg: { qualityScore: true },
+  });
+  const avgQualityScore = Math.round(quality._avg.qualityScore ?? 0);
 
   return (
     <div className="space-y-6">
@@ -99,12 +67,7 @@ export default async function DashboardPage() {
         </p>
         <h2 className="text-2xl font-bold">Trung tâm quản trị CMS & tăng trưởng</h2>
         <p className="text-sm opacity-80 mt-1">
-          Quản lý site, page, blog, media, menu, theme, lead, SEO/AI, analytics và automation trong một admin.
-          {isDemo && (
-            <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">
-              Dữ liệu demo
-            </span>
-          )}
+          Quản lý site, page, blog, media, menu, theme, SEO/AI, analytics và automation trong một admin.
         </p>
       </div>
 
@@ -115,13 +78,13 @@ export default async function DashboardPage() {
           { label: "Media", desc: "Thư viện ảnh/file", href: "/admin/media", icon: Image },
           { label: "Menu", desc: "Menu điều hướng site", href: "/admin/menus", icon: Menu },
           { label: "Giao diện", desc: "Thư viện giao diện", href: "/admin/themes", icon: Palette },
-          { label: "Lead", desc: "Inbox khách hàng", href: "/admin/leads", icon: Users },
+          { label: "Social Growth OS", desc: "Page, kế hoạch, Group", href: "/admin/social", icon: Share2 },
           { label: "SEO + AI", desc: "Tối ưu & viết nội dung", href: "/admin/seo-ai", icon: Search },
           { label: "Tự động hoá", desc: "Job, import, báo cáo", href: "/admin/automation", icon: Workflow },
           { label: "Nhập dữ liệu", desc: "Nhập dữ liệu website", href: "/admin/import", icon: UploadCloud },
-          { label: "Quảng cáo", desc: "Quản lý chiến dịch", href: "/admin/ads", icon: Megaphone },
+          { label: "Subdomain Factory", desc: "Nghiên cứu & lập kế hoạch từ khoá", href: "/admin/seo/factory", icon: Compass },
           { label: "Phân tích", desc: "Traffic & chuyển đổi", href: "/admin/analytics", icon: BarChart2 },
-          { label: "Báo cáo", desc: "Báo cáo tăng trưởng", href: "/admin/reports", icon: TrendingUp },
+          { label: "Người dùng", desc: "Quản lý tài khoản & quyền", href: "/admin/users", icon: UserCog },
         ].map((item) => (
           <Link
             key={item.href}

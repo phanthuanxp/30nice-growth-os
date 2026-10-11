@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAllPosts } from "@/server/queries/posts";
-import { posts as demoPosts, tenants as demoTenants } from "@/server/queries/demo-data";
 
 export const metadata: Metadata = { title: "Blog" };
 
@@ -24,37 +23,18 @@ export default async function BlogPage() {
     excerpt: string | null;
     publishedAt: Date | string | null;
     tenantName: string;
-    isDemo?: boolean;
   };
 
-  let postList: PostRow[] = [];
-  let isDemo = false;
-
-  try {
-    const rows = await getAllPosts();
-    postList = rows.map((p) => ({
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      status: p.status,
-      excerpt: p.excerpt,
-      publishedAt: p.publishedAt,
-      tenantName: p.tenant.name,
-    }));
-  } catch {
-    isDemo = true;
-    const tenantMap = Object.fromEntries(demoTenants.map((t) => [t.id, t.name]));
-    postList = demoPosts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      status: p.status,
-      excerpt: p.excerpt,
-      publishedAt: p.publishedAt,
-      tenantName: tenantMap[p.tenantId] ?? p.tenantId,
-      isDemo: true,
-    }));
-  }
+  const rows = await getAllPosts();
+  const postList: PostRow[] = rows.map((p) => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    status: p.status,
+    excerpt: p.excerpt,
+    publishedAt: p.publishedAt,
+    tenantName: p.tenant.name,
+  }));
 
   const published = postList.filter((p) => p.status === "PUBLISHED").length;
   const draft = postList.filter((p) => p.status === "DRAFT").length;
@@ -142,11 +122,9 @@ export default async function BlogPage() {
                       <span className="line-clamp-1">{p.excerpt}</span>
                     </TableCell>
                     <TableCell>
-                      {!p.isDemo && (
-                        <Link href={`/admin/blog/${p.id}`}>
-                          <Button variant="outline" size="sm">Sửa</Button>
-                        </Link>
-                      )}
+                      <Link href={`/admin/blog/${p.id}`}>
+                        <Button variant="outline" size="sm">Sửa</Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -156,11 +134,6 @@ export default async function BlogPage() {
         </Card>
       )}
 
-      {isDemo && (
-        <p className="mt-4 text-xs text-slate-400 text-center">
-          Dữ liệu demo · Kết nối database để sửa bài viết
-        </p>
-      )}
     </div>
   );
 }

@@ -33,14 +33,9 @@ function statusBadge(status: string) {
 export default async function AutomationPage() {
   let jobs: Awaited<ReturnType<typeof getAutomationJobs>> = [];
   let tenants: { id: string; name: string }[] = [];
-  let isDemo = false;
 
-  try {
-    [jobs, tenants] = await Promise.all([getAutomationJobs(), getTenants()]);
-    tenants = tenants.map((t) => ({ id: t.id, name: t.name }));
-  } catch {
-    isDemo = true;
-  }
+  [jobs, tenants] = await Promise.all([getAutomationJobs(), getTenants()]);
+  tenants = tenants.map((t) => ({ id: t.id, name: t.name }));
 
   const done = jobs.filter((j) => j.status === "DONE").length;
   const failed = jobs.filter((j) => j.status === "FAILED").length;
@@ -52,12 +47,6 @@ export default async function AutomationPage() {
         description="Tự động hóa SEO check, đăng bài, thông báo lead và nhập dữ liệu."
       />
 
-      {isDemo && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          Cần kết nối database để tạo và chạy automation jobs.
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create form */}
         <Card>
@@ -68,7 +57,7 @@ export default async function AutomationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isDemo || tenants.length === 0 ? (
+            {tenants.length === 0 ? (
               <p className="text-sm text-slate-500">Cần kết nối database và có ít nhất một site.</p>
             ) : (
               <CreateJobForm tenants={tenants} />

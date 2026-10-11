@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAllPages } from "@/server/queries/pages";
-import { pages as demoPages, tenants as demoTenants } from "@/server/queries/demo-data";
 
 export const metadata: Metadata = { title: "Pages" };
 
@@ -25,35 +24,17 @@ export default async function PagesPage() {
     status: string;
     summary: string | null;
     tenantName: string;
-    isDemo?: boolean;
   };
 
-  let pageList: PageRow[] = [];
-  let isDemo = false;
-
-  try {
-    const rows = await getAllPages();
-    pageList = rows.map((p) => ({
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      status: p.status,
-      summary: p.summary,
-      tenantName: p.tenant.name,
-    }));
-  } catch {
-    isDemo = true;
-    const tenantMap = Object.fromEntries(demoTenants.map((t) => [t.id, t.name]));
-    pageList = demoPages.map((p) => ({
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      status: p.status,
-      summary: p.summary,
-      tenantName: tenantMap[p.tenantId] ?? p.tenantId,
-      isDemo: true,
-    }));
-  }
+  const rows = await getAllPages();
+  const pageList: PageRow[] = rows.map((p) => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    status: p.status,
+    summary: p.summary,
+    tenantName: p.tenant.name,
+  }));
 
   return (
     <div>
@@ -133,11 +114,9 @@ export default async function PagesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      {!p.isDemo && (
-                        <Link href={`/admin/pages/${p.id}`}>
-                          <Button variant="outline" size="sm">Sửa</Button>
-                        </Link>
-                      )}
+                      <Link href={`/admin/pages/${p.id}`}>
+                        <Button variant="outline" size="sm">Sửa</Button>
+                      </Link>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -147,9 +126,6 @@ export default async function PagesPage() {
         </Card>
       )}
 
-      {isDemo && (
-        <p className="mt-4 text-xs text-slate-400 text-center">Dữ liệu demo · Kết nối database để sửa pages</p>
-      )}
     </div>
   );
 }
